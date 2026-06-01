@@ -10,6 +10,8 @@ type SuggestionChipsProps = {
   onSelect: (suggestion: FilterSuggestion) => void;
   disabled?: boolean;
   className?: string;
+  /** Stacked label above chips (sidebar layout). */
+  layout?: 'inline' | 'stacked';
 };
 
 function isActive(suggestion: FilterSuggestion, active?: SuggestionChipsProps['activeValues']) {
@@ -30,12 +32,28 @@ export function SuggestionChips({
   onSelect,
   disabled,
   className,
+  layout = 'inline',
 }: SuggestionChipsProps) {
   if (suggestions.length === 0) return null;
 
+  const stacked = layout === 'stacked';
+
   return (
-    <div className={cn('flex flex-wrap items-center gap-2', className)}>
-      <span className="text-xs text-muted-foreground">{label}:</span>
+    <div
+      className={cn(
+        stacked ? 'space-y-2' : 'flex flex-wrap items-center gap-2',
+        className
+      )}
+    >
+      <span
+        className={cn(
+          'text-xs font-medium text-muted-foreground',
+          stacked && 'block uppercase tracking-wide'
+        )}
+      >
+        {stacked ? label : `${label}:`}
+      </span>
+      <div className={cn('flex flex-wrap gap-1.5', stacked && 'w-full')}>
       {suggestions.map((suggestion, index) => {
         const active = isActive(suggestion, activeValues);
         return (
@@ -50,6 +68,7 @@ export function SuggestionChips({
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

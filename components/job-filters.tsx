@@ -26,6 +26,7 @@ type JobFiltersProps = {
   onSuggestionSelect?: (suggestion: FilterSuggestion) => void;
   disabled?: boolean;
   activeSearch?: string;
+  variant?: 'bar' | 'sidebar';
 };
 
 export function JobFilters({
@@ -37,7 +38,9 @@ export function JobFilters({
   onSuggestionSelect,
   disabled,
   activeSearch = '',
+  variant = 'bar',
 }: JobFiltersProps) {
+  const sidebar = variant === 'sidebar';
   const toggleSource = (id: string) => {
     const set = new Set(value.sourceIds);
     if (set.has(id)) set.delete(id);
@@ -72,9 +75,21 @@ export function JobFilters({
   };
 
   return (
-    <div className="space-y-4 border-b border-border px-4 py-4 sm:px-5">
+    <div
+      className={cn(
+        'space-y-4',
+        sidebar ? 'pt-1' : 'border-b border-border px-4 py-4 sm:px-5'
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium text-foreground">Filters</p>
+        <p
+          className={cn(
+            'font-medium text-foreground',
+            sidebar ? 'text-xs uppercase tracking-wide text-muted-foreground' : 'text-sm'
+          )}
+        >
+          Filters
+        </p>
         {hasFilters && (
           <button
             type="button"
@@ -119,13 +134,14 @@ export function JobFilters({
 
       <SuggestionChips
         label="Type"
+        layout={sidebar ? 'stacked' : 'inline'}
         suggestions={typeChips}
         activeValues={{ type: value.type, search: activeSearch, location: value.location }}
         onSelect={handleSuggestion}
         disabled={disabled}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={cn('grid gap-4', !sidebar && 'sm:grid-cols-2')}>
         <label className="space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">Job type</span>
           <select
@@ -157,6 +173,7 @@ export function JobFilters({
 
       <SuggestionChips
         label="Location"
+        layout={sidebar ? 'stacked' : 'inline'}
         suggestions={locationChips}
         activeValues={{ type: value.type, search: activeSearch, location: value.location }}
         onSelect={handleSuggestion}

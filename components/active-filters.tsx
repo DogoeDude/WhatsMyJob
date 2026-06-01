@@ -12,6 +12,7 @@ type ActiveFiltersProps = {
   onClearSearch: () => void;
   onChangeFilters: (next: JobFilterState) => void;
   onClearAll: () => void;
+  variant?: 'bar' | 'sidebar';
 };
 
 function FilterPill({
@@ -43,6 +44,7 @@ export function ActiveFilters({
   onClearSearch,
   onChangeFilters,
   onClearAll,
+  variant = 'bar',
 }: ActiveFiltersProps) {
   const sourceNames = new Map(sources.map((s) => [s.id, s.name]));
   const hasSearch = search.trim().length > 0;
@@ -53,6 +55,54 @@ export function ActiveFilters({
     filters.location !== '';
 
   if (!hasAny) return null;
+
+  if (variant === 'sidebar') {
+    return (
+      <div className="space-y-2 rounded-md border border-border/80 bg-card/60 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Active filters
+          </span>
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Clear all
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {hasSearch && (
+            <FilterPill label={`"${search.trim()}"`} onRemove={onClearSearch} />
+          )}
+          {filters.sourceIds.map((id) => (
+            <FilterPill
+              key={id}
+              label={sourceNames.get(id) ?? id}
+              onRemove={() =>
+                onChangeFilters({
+                  ...filters,
+                  sourceIds: filters.sourceIds.filter((s) => s !== id),
+                })
+              }
+            />
+          ))}
+          {filters.type && (
+            <FilterPill
+              label={filters.type}
+              onRemove={() => onChangeFilters({ ...filters, type: '' })}
+            />
+          )}
+          {filters.location && (
+            <FilterPill
+              label={filters.location}
+              onRemove={() => onChangeFilters({ ...filters, location: '' })}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/20 px-4 py-2.5 sm:px-5">

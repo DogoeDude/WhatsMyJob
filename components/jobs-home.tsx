@@ -1,16 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActiveFilters } from '@/components/active-filters';
 import { JobCard } from '@/components/job-card';
-import { JobCategoryNav } from '@/components/job-category-nav';
-import { JobDetailsModal } from '@/components/job-details-modal';
-import { JobFilters, type JobFilterState } from '@/components/job-filters';
+import { JobDetailPanel } from '@/components/job-detail-panel';
+import { type JobFilterState } from '@/components/job-filters';
 import { JobSections } from '@/components/job-sections';
+import { JobsPane, JobsPaneHeader } from '@/components/jobs-board-layout';
+import { JobsSidebar } from '@/components/jobs-sidebar';
 import { PageContent, PageShell } from '@/components/page-shell';
-import { SuggestionChips } from '@/components/suggestion-chips';
 import { Button } from '@/components/ui/button';
-import { searchInputClass } from '@/lib/ui-classes';
 import { EmptyState } from '@/components/empty-state';
 import { ALL_CATEGORY_ID } from '@/lib/jobs/categories';
 import { PAGE_SIZE, SEARCH_JOB_LIMIT } from '@/lib/jobs/limits';
@@ -20,7 +18,7 @@ import {
 } from '@/lib/jobs/filter-suggestions';
 import type { SourceFacet } from '@/lib/jobs/filters';
 import type { Job } from '@/lib/jobs/types';
-import { Search, Briefcase, SearchX, Loader2, RefreshCw } from 'lucide-react';
+import { Briefcase, SearchX, Loader2, SlidersHorizontal } from 'lucide-react';
 
 type JobsResponse = {
   jobs: Job[];
@@ -66,7 +64,6 @@ export function JobsHome() {
   const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -74,6 +71,7 @@ export function JobsHome() {
   jobsCountRef.current = jobs.length;
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(searchQuery), 300);
@@ -161,6 +159,14 @@ export function JobsHome() {
     fetchJobs(debouncedQuery, debouncedFilters, category, 0, false);
   }, [debouncedQuery, debouncedFilters, category, fetchJobs]);
 
+  useEffect(() => {
+    setSelectedJob((current) => {
+      if (jobs.length === 0) return null;
+      if (current && jobs.some((j) => j.id === current.id)) return current;
+      return jobs[0];
+    });
+  }, [jobs]);
+
   const loadMore = () => {
     if (!hasMore || isLoadingMore || isLoading) return;
     fetchJobs(debouncedQuery, debouncedFilters, category, jobs.length, true);
@@ -217,200 +223,198 @@ export function JobsHome() {
     return String(n);
   };
 
-  return (
-    <PageShell>
-      <PageContent className="py-6 sm:py-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Jobs
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Search listings synced from Remotive, Arbeitnow, Jobicy, and other public APIs.
-            {countLabel() != null && (
-              <span className="text-foreground"> · {countLabel()} shown</span>
-            )}
-          </p>
-        </header>
+  const sidebarProps = {
+    searchQuery,
+    onSearchChange: setSearchQuery,
+    jobFilters,
+    onFiltersChange: setJobFilters,
+    category,
+    onCategoryChange: setCategory,
+    sourceFacets,
+    jobTypes,
+    locationSuggestions,
+    searchSuggestions,
+    onFilterSuggestion: handleFilterSuggestion,
+    onClearAll: clearAllFilters,
+    onRefresh: () => fetchJobs(debouncedQuery, debouncedFilters, category, 0, false, true),
+    isLoading,
+    jobsCount: jobs.length,
+  };
 
+  const listHeader = (
+    <JobsPaneHeader>
+      <span className="truncate text-xs font-medium text-foreground">
+        {countLabel() != null ? (
+          <>
+            <span className="tabular-nums">{countLabel()}</span>
+            <span className="text-muted-foreground"> listings</span>
+          </>
+        ) : (
+          'Listings'
+        )}
+      </span>
+      {selectedJob && (
+        <span className="hidden max-w-[45%] truncate text-xs text-muted-foreground xl:inline">
+          {selectedJob.title}
+        </span>
+      )}
+    </JobsPaneHeader>
+  );
+
+  const listFooter = (
+    <>
+      {hasMore && (
+        <div className="shrink-0 border-t border-border bg-muted/20 px-3 py-3 text-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={loadMore}
+            disabled={isLoadingMore || isLoading}
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading…
+              </>
+            ) : (
+              `Load more (${jobs.length} of ${totalMatching ?? '…'})`
+            )}
+          </Button>
+        </div>
+      )}
+      {!hasMore && jobs.length > 0 && !isLoading && (
+        <p className="shrink-0 border-t border-border py-2 text-center text-[11px] text-muted-foreground">
+          End of list
+        </p>
+      )}
+    </>
+  );
+
+  return (
+    <PageShell appLayout>
+      <PageContent wide fillViewport>
         <div
-          className={`rounded-lg border border-border bg-card ${isRefreshing ? 'opacity-70 transition-opacity' : ''}`}
+          className={`flex h-full min-h-0 flex-1 flex-col overflow-hidden border border-border bg-background ${isRefreshing ? 'opacity-70 transition-opacity' : ''}`}
         >
-          <div className="space-y-4 border-b border-border p-4 sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative min-w-0 flex-1">
-                <Search
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden
-                />
-                <input
-                  type="search"
-                  placeholder="Title, company, location…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full ${searchInputClass}`}
-                />
-              </div>
-              <Button
-                variant="outline"
-                className="shrink-0"
-                onClick={() =>
-                  fetchJobs(debouncedQuery, debouncedFilters, category, 0, false, true)
-                }
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Refresh
-              </Button>
-            </div>
-            <SuggestionChips
-              label="Suggestions"
-              suggestions={searchSuggestions}
-              activeValues={{
-                search: searchQuery,
-                location: jobFilters.location,
-                type: jobFilters.type,
-              }}
-              onSelect={handleFilterSuggestion}
-              disabled={isLoading}
-            />
+          <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-2 lg:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setMobileFiltersOpen((o) => !o)}
+              aria-expanded={mobileFiltersOpen}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters
+            </Button>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+              Jobs
+            </span>
+            {countLabel() != null && (
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                {countLabel()}
+              </span>
+            )}
           </div>
 
-          <JobCategoryNav
-            value={category}
-            onChange={setCategory}
-            disabled={isLoading && jobs.length === 0}
-          />
-
-          <ActiveFilters
-            search={searchQuery}
-            filters={jobFilters}
-            sources={sourceFacets}
-            onClearSearch={() => setSearchQuery('')}
-            onChangeFilters={setJobFilters}
-            onClearAll={clearAllFilters}
-          />
-
-          <JobFilters
-            sources={sourceFacets}
-            types={jobTypes}
-            locationSuggestions={locationSuggestions}
-            value={jobFilters}
-            onChange={setJobFilters}
-            onSuggestionSelect={handleFilterSuggestion}
-            activeSearch={searchQuery}
-            disabled={isLoading && jobs.length === 0}
-          />
+          {mobileFiltersOpen && (
+            <JobsSidebar
+              {...sidebarProps}
+              className="max-h-[40dvh] shrink-0 lg:hidden"
+            />
+          )}
 
           {infoMessage && !error && (
-            <p className="border-b border-border bg-muted/40 px-4 py-2.5 text-center text-sm text-muted-foreground sm:px-5">
+            <p className="shrink-0 border-b border-border bg-primary/5 px-3 py-1.5 text-center text-xs text-muted-foreground">
               {infoMessage}
             </p>
           )}
 
-          {error && (
-            <div className="px-5 py-8 text-center text-sm text-destructive">{error}</div>
-          )}
+          <div className="grid min-h-0 flex-1 overflow-hidden max-lg:grid-rows-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-cols-[minmax(220px,16rem)_minmax(280px,1fr)_minmax(0,1.45fr)] xl:grid-cols-[minmax(240px,17rem)_minmax(300px,1fr)_minmax(0,1.55fr)]">
+            <JobsSidebar
+              {...sidebarProps}
+              className="hidden h-full min-h-0 lg:flex"
+            />
 
-          {showEmpty && !hasBoardFilters && !hasSearch && (
-            <EmptyState
-              icon={Briefcase}
-              title="No jobs yet"
-              description="Sign in as admin and run a sync, or wait for the live API feed."
-              action={
-                <Button
-                  variant="outline"
-                  onClick={() => fetchJobs('', defaultFilters, category, 0, false)}
+            {error ? (
+              <div className="col-span-full flex min-h-0 flex-1 items-center justify-center p-8 text-sm text-destructive">
+                {error}
+              </div>
+            ) : showEmpty ? (
+              <div className="col-span-full flex min-h-0 flex-1 flex-col">
+                <EmptyState
+                  className="h-full flex-1"
+                  icon={hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID ? SearchX : Briefcase}
+                  title={
+                    hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
+                      ? 'No matches'
+                      : 'No jobs yet'
+                  }
+                  description={
+                    hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
+                      ? 'Try a different search term, board, or category.'
+                      : 'Sign in as admin and run a sync, or wait for the live API feed.'
+                  }
+                  action={
+                    <Button
+                      variant="outline"
+                      onClick={
+                        hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
+                          ? clearAllFilters
+                          : () => fetchJobs('', defaultFilters, category, 0, false)
+                      }
+                    >
+                      {hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
+                        ? 'Clear filters'
+                        : 'Try again'}
+                    </Button>
+                  }
+                />
+              </div>
+            ) : isLoading && jobs.length === 0 ? (
+              <div className="col-span-full flex min-h-0 flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading listings…
+              </div>
+            ) : (
+              <>
+                <JobsPane
+                  className="h-full min-h-0 border-b border-border lg:border-b-0 lg:border-r"
+                  header={listHeader}
+                  footer={listFooter}
                 >
-                  Try again
-                </Button>
-              }
-            />
-          )}
+                  {showSections ? (
+                    <JobSections
+                      jobs={jobs}
+                      selectedJobId={selectedJob?.id}
+                      onJobSelect={setSelectedJob}
+                    />
+                  ) : (
+                    <ul className="divide-y divide-border">
+                      {jobs.map((job) => (
+                        <li key={job.id}>
+                          <JobCard
+                            job={job}
+                            compact
+                            isSelected={selectedJob?.id === job.id}
+                            onJobSelect={() => setSelectedJob(job)}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </JobsPane>
 
-          {showEmpty && (hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID) && (
-            <EmptyState
-              icon={SearchX}
-              title="No matches"
-              description="Try a different search term, board, or category."
-              action={
-                <Button variant="outline" onClick={clearAllFilters}>
-                  Clear filters
-                </Button>
-              }
-            />
-          )}
-
-          {!error && !showEmpty && isLoading && jobs.length === 0 && (
-            <div className="flex items-center justify-center gap-2 px-5 py-16 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading…
-            </div>
-          )}
-
-          {jobs.length > 0 && showSections && (
-            <JobSections
-              jobs={jobs}
-              onJobSelect={(job) => {
-                setSelectedJob(job);
-                setIsModalOpen(true);
-              }}
-            />
-          )}
-
-          {jobs.length > 0 && !showSections && (
-            <ul className="divide-y divide-border">
-              {jobs.map((job) => (
-                <li key={job.id}>
-                  <JobCard
-                    job={job}
-                    onJobSelect={() => {
-                      setSelectedJob(job);
-                      setIsModalOpen(true);
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {jobs.length > 0 && hasMore && (
-            <div className="border-t border-border px-5 py-6 text-center">
-              <Button
-                variant="outline"
-                onClick={loadMore}
-                disabled={isLoadingMore || isLoading}
-              >
-                {isLoadingMore ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading…
-                  </>
-                ) : (
-                  `Load more (${jobs.length} of ${totalMatching ?? '…'})`
-                )}
-              </Button>
-            </div>
-          )}
-
-          {jobs.length > 0 && !hasMore && !isLoading && (
-            <p className="border-t border-border py-3 text-center text-xs text-muted-foreground">
-              End of results
-            </p>
-          )}
+                <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+                  <JobDetailPanel job={selectedJob} className="h-full min-h-0 flex-1" />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </PageContent>
-
-      {selectedJob && (
-        <JobDetailsModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          job={selectedJob}
-        />
-      )}
     </PageShell>
   );
 }

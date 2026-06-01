@@ -30,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
-      <body className="min-h-screen font-sans bg-background text-foreground antialiased">
+      <body className="min-h-dvh font-sans bg-background text-foreground antialiased">
         {children}
       </body>
     </html>

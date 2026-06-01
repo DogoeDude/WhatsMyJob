@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Clock, ChevronRight } from 'lucide-react';
+import { MapPin, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompanyLogo } from '@/components/company-logo';
 import type { Job } from '@/lib/jobs/types';
@@ -8,21 +8,28 @@ import type { Job } from '@/lib/jobs/types';
 interface JobCardProps {
   job: Job;
   onJobSelect: () => void;
+  isSelected?: boolean;
+  compact?: boolean;
 }
 
-export function JobCard({ job, onJobSelect }: JobCardProps) {
+export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps) {
   return (
     <article
       role="button"
       tabIndex={0}
+      aria-current={isSelected ? 'true' : undefined}
       onClick={onJobSelect}
       onKeyDown={(e) => e.key === 'Enter' && onJobSelect()}
       className={cn(
-        'group flex w-full cursor-pointer gap-4 px-4 py-4 text-left transition-colors sm:px-5',
-        'hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+        'group flex w-full cursor-pointer gap-3 text-left transition-colors',
+        compact ? 'px-3 py-3.5 sm:px-4' : 'gap-4 px-4 py-4 sm:px-5',
+        isSelected
+          ? 'bg-primary/5 ring-1 ring-inset ring-primary/25'
+          : 'hover:bg-muted/50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
       )}
     >
-      <CompanyLogo company={job.company} logoUrl={job.logoUrl} size="md" />
+      <CompanyLogo company={job.company} logoUrl={job.logoUrl} size={compact ? 'sm' : 'md'} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -62,10 +69,6 @@ export function JobCard({ job, onJobSelect }: JobCardProps) {
         )}
       </div>
 
-      <ChevronRight
-        className="mt-1 h-4 w-4 shrink-0 self-start text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:mt-2"
-        aria-hidden
-      />
     </article>
   );
 }
