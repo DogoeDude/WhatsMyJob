@@ -15,26 +15,20 @@ export function JobSections({ jobs, onJobSelect }: JobSectionsProps) {
   if (sections.length === 0) return null;
 
   return (
-    <div className="space-y-12 p-4 sm:p-6">
+    <div>
       {sections.map(({ category, jobs: sectionJobs }) => (
-        <section key={category.id} id={`category-${category.id}`} className="relative pl-4">
-          <div
-            className="absolute bottom-0 left-0 top-0 w-1 rounded-full bg-gradient-to-b from-primary/60 via-primary/30 to-transparent"
-            aria-hidden
-          />
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-              {category.label}
-            </h2>
-            <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-              {sectionJobs.length} {sectionJobs.length === 1 ? 'role' : 'roles'}
-            </span>
+        <section key={category.id} id={`category-${category.id}`}>
+          <div className="flex items-baseline justify-between gap-2 border-b border-border bg-muted/30 px-4 py-2.5 sm:px-5">
+            <h2 className="text-sm font-semibold text-foreground">{category.label}</h2>
+            <span className="text-xs text-muted-foreground">{sectionJobs.length}</span>
           </div>
-          <div className="space-y-3">
+          <ul className="divide-y divide-border">
             {sectionJobs.map((job) => (
-              <JobCard key={job.id} job={job} onJobSelect={() => onJobSelect(job)} />
+              <li key={job.id}>
+                <JobCard job={job} onJobSelect={() => onJobSelect(job)} />
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ))}
     </div>

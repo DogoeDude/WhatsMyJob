@@ -1,5 +1,4 @@
 import { Footer } from '@/components/footer';
-import { MeshBackground } from '@/components/mesh-background';
 import { Navbar } from '@/components/navbar-client';
 import { pageContainerClass } from '@/lib/ui-classes';
 
@@ -9,16 +8,15 @@ type PageShellProps = {
 
 export function PageShell({ children }: PageShellProps) {
   return (
-    <div className="app-mesh relative flex min-h-screen flex-col overflow-x-hidden">
+    <div className="flex min-h-screen flex-col">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
       >
         Skip to content
       </a>
-      <MeshBackground />
       <Navbar />
-      <main id="main-content" className="page-fade-in relative z-10 flex flex-1 flex-col">
+      <main id="main-content" className="page-enter flex flex-1 flex-col">
         {children}
       </main>
       <Footer />
@@ -34,7 +32,7 @@ export function PageContent({
   className?: string;
 }) {
   return (
-    <div className={`${pageContainerClass} flex-1 py-10 sm:py-12 ${className}`}>
+    <div className={`${pageContainerClass} flex-1 py-8 sm:py-10 ${className}`}>
       {children}
     </div>
   );

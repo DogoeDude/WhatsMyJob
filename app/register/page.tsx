@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { AuthShell } from '@/components/auth-shell';
 import { inputSurfaceClass } from '@/lib/ui-classes';
 import { authClient } from '@/lib/auth-client';
@@ -56,40 +55,29 @@ export default function RegisterPage() {
     <AuthShell
       backHref="/login"
       backLabel="Back to sign in"
-      title="Create your account"
-      subtitle="Join WhatsMyJob as a job seeker. Admin accounts are created separately."
+      title="Create account"
+      subtitle="Job seeker accounts only. Admin access is granted separately."
       footer={
         <>
-          Already have an account?{' '}
-          <Link
-            href="/login"
-            className="font-semibold text-primary transition-colors hover:text-primary/80"
-          >
+          Already registered?{' '}
+          <Link href="/login" className="font-medium text-foreground hover:underline">
             Sign in
           </Link>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="pb-1 text-center lg:hidden">
-          <h2 className="text-lg font-semibold text-foreground">Your details</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create a job seeker account to get started
-          </p>
-        </div>
-
         {error && (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
           </p>
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="name">Full name</Label>
+          <Label htmlFor="name">Name</Label>
           <Input
             id="name"
             type="text"
-            placeholder="Jane Doe"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -120,7 +108,6 @@ export default function RegisterPage() {
             <Input
               id="password"
               type="password"
-              placeholder="Min. 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -135,7 +122,6 @@ export default function RegisterPage() {
             <Input
               id="confirmPassword"
               type="password"
-              placeholder="Repeat password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -153,14 +139,10 @@ export default function RegisterPage() {
 
         <Button
           type="submit"
-          size="lg"
-          className="group w-full"
+          className="w-full"
           disabled={passwordsMismatch || isLoading}
         >
           {isLoading ? 'Creating account…' : 'Create account'}
-          {!isLoading && (
-            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          )}
         </Button>
       </form>
     </AuthShell>

@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/prisma';
 import {
   applyJobFilters,
   buildSourceFacets,
@@ -7,8 +6,8 @@ import {
   type JobListFilters,
   type SourceFacet,
 } from '@/lib/jobs/filters';
-import { enrichJobsWithLogos, clearLogoCache } from '@/lib/jobs/enrich-logos';
-import { fetchLiveJobs } from '@/lib/jobs/live-fetch';
+import { enrichJobsWithLogos, clearLogoCache, primeLiveLogoCache } from '@/lib/jobs/enrich-logos';
+import { fetchLiveJobs, interleaveJobsBySource } from '@/lib/jobs/live-fetch';
 import { getTopLocationsFromJobs } from '@/lib/jobs/filter-suggestions';
 import { dedupeStrings } from '@/lib/jobs/utils';
 import {
@@ -17,6 +16,7 @@ import {
   getJobStats,
   getSourceFacetsFromDb,
   getTopLocationsFromDb,
+  hasAnyJobListings,
   searchJobListings,
 } from '@/lib/jobs/query';
 import { JOB_SOURCES_CATALOG } from '@/lib/jobs/sources-catalog';
@@ -43,8 +43,7 @@ function mergeFacets(
 
 export async function getAppJobStats() {
   try {
-    const totalInDb = await prisma.jobListing.count();
-    if (totalInDb > 0) {
+    if (await hasAnyJobListings()) {
       const stats = await getJobStats();
       return {
         totalJobs: stats.totalJobs,
@@ -57,7 +56,7 @@ export async function getAppJobStats() {
     console.error('[getAppJobStats] database unavailable:', err);
   }
 
-  const { jobs } = await fetchLiveJobs(500);
+  const { jobs } = await fetchLiveJobs(200);
   return {
     totalJobs: jobs.length,
     locationCount: new Set(jobs.map((j) => j.location)).size,
@@ -76,36 +75,36 @@ export async function getJobsForApp(
 
   if (!forceLive) {
     try {
-      const totalInDb = await prisma.jobListing.count();
+      if (await hasAnyJobListings()) {
+        const liveLogos = primeLiveLogoCache();
 
-      if (totalInDb > 0) {
-      const [jobs, facets, types, totalMatching, locationSuggestions] = await Promise.all([
-        searchJobListings(filters, limit, offset),
-        getSourceFacetsFromDb(filters),
-        getDistinctJobTypes(filters),
-        countJobListings(filters),
-        getTopLocationsFromDb(filters),
-      ]);
+        const [jobs, facets, types, totalMatching, locationSuggestions] = await Promise.all([
+          searchJobListings(filters, limit, offset),
+          getSourceFacetsFromDb(filters),
+          getDistinctJobTypes(filters),
+          countJobListings(filters),
+          getTopLocationsFromDb(filters),
+        ]);
 
-      const enrichedJobs = await enrichJobsWithLogos(jobs);
+        const enrichedJobs = await enrichJobsWithLogos(jobs, { liveCacheReady: liveLogos });
 
-      const sources = mergeSourceFacetsWithSelection(
-        mergeFacets(facets, []),
-        filters.sourceIds
-      );
+        const sources = mergeSourceFacetsWithSelection(
+          mergeFacets(facets, []),
+          filters.sourceIds
+        );
 
-      return {
-        jobs: enrichedJobs,
-        stats: statsFromFilteredJobs(enrichedJobs),
-        totalMatching,
-        hasMore: offset + enrichedJobs.length < totalMatching,
-        offset,
-        sources,
-        types,
-        locationSuggestions,
-        filters,
-        mode: 'database' as const,
-      };
+        return {
+          jobs: enrichedJobs,
+          stats: statsFromFilteredJobs(enrichedJobs),
+          totalMatching,
+          hasMore: offset + enrichedJobs.length < totalMatching,
+          offset,
+          sources,
+          types,
+          locationSuggestions,
+          filters,
+          mode: 'database' as const,
+        };
       }
     } catch (err) {
       console.error('[getJobsForApp] database unavailable:', err);
@@ -119,7 +118,7 @@ export async function getJobsForApp(
     filters.type !== '' ||
     filters.location !== '';
   const livePoolSize =
-    filters.sourceIds.length > 0 || hasNonSourceFilters ? 800 : 500;
+    filters.sourceIds.length > 0 || hasNonSourceFilters ? 400 : 250;
   const { jobs: livePool, providerErrors } = await fetchLiveJobs(livePoolSize);
   const facetBase = applyJobFilters(livePool, { ...filters, sourceIds: [] });
   const sources = mergeSourceFacetsWithSelection(
@@ -127,8 +126,13 @@ export async function getJobsForApp(
     filters.sourceIds
   );
   const filtered = applyJobFilters(livePool, filters);
-  const totalMatching = filtered.length;
-  const jobs = filtered.slice(offset, offset + limit);
+  const mixed =
+    filters.sourceIds.length === 0 && !filters.search.trim()
+      ? interleaveJobsBySource(filtered)
+      : filtered;
+  const totalMatching = mixed.length;
+  const page = mixed.slice(offset, offset + limit);
+  const jobs = await enrichJobsWithLogos(page);
   const types = dedupeStrings(
     facetBase.map((j) => j.type).filter((t): t is string => typeof t === 'string'),
     true
@@ -144,8 +148,7 @@ export async function getJobsForApp(
     message = 'Refreshed from live job board APIs.';
   } else {
     try {
-      const n = await prisma.jobListing.count();
-      if (n === 0) {
+      if (!(await hasAnyJobListings())) {
         message =
           'Live listings from job board APIs. Admin → Sync all sources saves them to your database.';
       }

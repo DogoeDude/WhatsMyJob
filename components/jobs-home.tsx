@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActiveFilters } from '@/components/active-filters';
 import { JobCard } from '@/components/job-card';
 import { JobCategoryNav } from '@/components/job-category-nav';
@@ -68,7 +68,10 @@ export function JobsHome() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const jobsCountRef = useRef(0);
+  jobsCountRef.current = jobs.length;
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
@@ -91,11 +94,16 @@ export function JobsHome() {
       append: boolean,
       liveRefresh = false
     ) => {
-      if (append) setIsLoadingMore(true);
-      else {
+      if (append) {
+        setIsLoadingMore(true);
+      } else if (jobsCountRef.current === 0) {
         setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+      if (!append) {
         setError(null);
-        setInfoMessage(null);
+        if (!liveRefresh) setInfoMessage(null);
       }
 
       try {
@@ -129,7 +137,10 @@ export function JobsHome() {
         );
         setLocationSuggestions(data.locationSuggestions ?? []);
         if (!append) {
-          setInfoMessage(data.message ?? (data.mode === 'live' ? 'Live feed from job board APIs' : null));
+          setInfoMessage(
+            data.message ??
+              (data.mode === 'live' ? 'Showing live results from job board APIs.' : null)
+          );
         }
       } catch (e) {
         if (!append) {
@@ -139,6 +150,7 @@ export function JobsHome() {
         }
       } finally {
         setIsLoading(false);
+        setIsRefreshing(false);
         setIsLoadingMore(false);
       }
     },
@@ -197,59 +209,65 @@ export function JobsHome() {
     (s) => s.label.toLowerCase() !== searchQuery.trim().toLowerCase()
   );
 
-  const rolesSubtitle = () => {
-    if (isLoading && jobs.length === 0) return 'Loading listings…';
+  const countLabel = () => {
+    if (isLoading && jobs.length === 0) return null;
     const n = jobs.length;
     const total = totalMatching ?? n;
-    if (hasMore) return `Showing ${n} of ${total} roles`;
-    return `${n} ${n === 1 ? 'role' : 'roles'} loaded`;
+    if (hasMore) return `${n} of ${total}`;
+    return String(n);
   };
 
   return (
     <PageShell>
       <PageContent className="py-6 sm:py-8">
-        <section className="surface-elevated overflow-hidden rounded-2xl">
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border/60 bg-gradient-to-r from-muted/30 to-primary/[0.03] px-5 py-5 sm:px-7">
-            <div>
-              <p className="section-label mb-1">Job discovery</p>
-              <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-                Find your next role
-              </h1>
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">{rolesSubtitle()}</p>
-          </div>
+        <header className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            Jobs
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Search listings synced from Remotive, Arbeitnow, Jobicy, and other public APIs.
+            {countLabel() != null && (
+              <span className="text-foreground"> · {countLabel()} shown</span>
+            )}
+          </p>
+        </header>
 
-          <div className="space-y-4 border-b border-border/60 px-5 py-4 sm:px-7">
+        <div
+          className={`rounded-lg border border-border bg-card ${isRefreshing ? 'opacity-70 transition-opacity' : ''}`}
+        >
+          <div className="space-y-4 border-b border-border p-4 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative min-w-0 flex-1">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary/70" />
+                <Search
+                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
                 <input
                   type="search"
-                  placeholder="Search jobs, companies, locations..."
+                  placeholder="Title, company, location…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full text-foreground ${searchInputClass}`}
+                  className={`w-full ${searchInputClass}`}
                 />
               </div>
               <Button
-                size="lg"
                 variant="outline"
-                className="shrink-0 rounded-xl border-border/60 bg-background/80 shadow-sm"
+                className="shrink-0"
                 onClick={() =>
                   fetchJobs(debouncedQuery, debouncedFilters, category, 0, false, true)
                 }
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <RefreshCw className="h-5 w-5" />
+                  <RefreshCw className="h-4 w-4" />
                 )}
                 Refresh
               </Button>
             </div>
             <SuggestionChips
-              label="Try searching"
+              label="Suggestions"
               suggestions={searchSuggestions}
               activeValues={{
                 search: searchQuery,
@@ -288,20 +306,20 @@ export function JobsHome() {
           />
 
           {infoMessage && !error && (
-            <p className="border-b border-primary/15 bg-primary/[0.04] px-5 py-3 text-center text-sm text-muted-foreground">
+            <p className="border-b border-border bg-muted/40 px-4 py-2.5 text-center text-sm text-muted-foreground sm:px-5">
               {infoMessage}
             </p>
           )}
 
           {error && (
-            <div className="px-6 py-8 text-center text-sm text-destructive">{error}</div>
+            <div className="px-5 py-8 text-center text-sm text-destructive">{error}</div>
           )}
 
           {showEmpty && !hasBoardFilters && !hasSearch && (
             <EmptyState
               icon={Briefcase}
-              title="No jobs available"
-              description="Sync jobs from Admin, or wait for live APIs to respond."
+              title="No jobs yet"
+              description="Sign in as admin and run a sync, or wait for the live API feed."
               action={
                 <Button
                   variant="outline"
@@ -316,8 +334,8 @@ export function JobsHome() {
           {showEmpty && (hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID) && (
             <EmptyState
               icon={SearchX}
-              title="No matching jobs"
-              description="Try another category, job board, or search term."
+              title="No matches"
+              description="Try a different search term, board, or category."
               action={
                 <Button variant="outline" onClick={clearAllFilters}>
                   Clear filters
@@ -327,9 +345,9 @@ export function JobsHome() {
           )}
 
           {!error && !showEmpty && isLoading && jobs.length === 0 && (
-            <div className="flex items-center justify-center gap-2 px-6 py-16 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Loading jobs…
+            <div className="flex items-center justify-center gap-2 px-5 py-16 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading…
             </div>
           )}
 
@@ -344,32 +362,31 @@ export function JobsHome() {
           )}
 
           {jobs.length > 0 && !showSections && (
-            <div className="space-y-3 p-4 sm:p-6">
+            <ul className="divide-y divide-border">
               {jobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onJobSelect={() => {
-                    setSelectedJob(job);
-                    setIsModalOpen(true);
-                  }}
-                />
+                <li key={job.id}>
+                  <JobCard
+                    job={job}
+                    onJobSelect={() => {
+                      setSelectedJob(job);
+                      setIsModalOpen(true);
+                    }}
+                  />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
 
           {jobs.length > 0 && hasMore && (
-            <div className="border-t border-border/60 bg-gradient-to-b from-muted/10 to-muted/30 px-5 py-8 text-center sm:px-7">
+            <div className="border-t border-border px-5 py-6 text-center">
               <Button
-                variant="default"
-                size="lg"
+                variant="outline"
                 onClick={loadMore}
                 disabled={isLoadingMore || isLoading}
-                className="min-w-[220px] rounded-xl shadow-md shadow-primary/15"
               >
                 {isLoadingMore ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Loading…
                   </>
                 ) : (
@@ -380,11 +397,11 @@ export function JobsHome() {
           )}
 
           {jobs.length > 0 && !hasMore && !isLoading && (
-            <p className="border-t border-border/60 py-4 text-center text-sm text-muted-foreground">
-              All matching roles loaded
+            <p className="border-t border-border py-3 text-center text-xs text-muted-foreground">
+              End of results
             </p>
           )}
-        </section>
+        </div>
       </PageContent>
 
       {selectedJob && (

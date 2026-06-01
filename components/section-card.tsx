@@ -6,7 +6,6 @@ type SectionCardProps = {
   children: React.ReactNode;
   className?: string;
   headerAction?: React.ReactNode;
-  variant?: 'glass' | 'elevated';
 };
 
 export function SectionCard({
@@ -15,30 +14,21 @@ export function SectionCard({
   children,
   className,
   headerAction,
-  variant = 'elevated',
 }: SectionCardProps) {
   return (
-    <div
-      className={cn(
-        'rounded-2xl p-6 sm:p-7',
-        variant === 'glass' ? 'surface-glass' : 'surface-elevated',
-        className
-      )}
-    >
+    <div className={cn('rounded-lg border border-border bg-card', className)}>
       {(title || headerAction) && (
-        <div className="mb-6 flex flex-col gap-3 border-b border-border/50 pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            {title && (
-              <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
-            )}
+            {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
             {description && (
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
             )}
           </div>
           {headerAction}
         </div>
       )}
-      {children}
+      <div className="p-5">{children}</div>
     </div>
   );
 }

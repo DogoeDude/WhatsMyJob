@@ -1,6 +1,5 @@
 'use client';
 
-import { Github, Linkedin } from 'lucide-react';
 import { pageContainerClass } from '@/lib/ui-classes';
 import { JOB_SOURCES_CATALOG } from '@/lib/jobs/sources-catalog';
 
@@ -8,110 +7,62 @@ const DEVELOPER_LINKEDIN = 'https://www.linkedin.com/in/reggie-hermosisima-0937a
 const DEVELOPER_GITHUB = 'https://github.com/DogoeDude';
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
+  const year = new Date().getFullYear();
 
   return (
-    <footer className="relative z-10 mt-auto border-t border-border/50 bg-card/60 backdrop-blur-xl">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent"
-        aria-hidden
-      />
-      <div className={`${pageContainerClass} py-14`}>
-        <div className="mb-10 grid grid-cols-1 gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-3">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
-                <img src="/job.svg" alt="" width={22} height={22} className="h-[22px] w-[22px]" />
-              </div>
-              <h3 className="text-lg font-bold tracking-tight text-foreground">WhatsMyJob</h3>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Job discovery powered by public APIs from trusted job boards and aggregators — not
-              scraped without permission.
+    <footer className="mt-auto border-t border-border bg-muted/30">
+      <div className={`${pageContainerClass} py-8`}>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-sm">
+            <p className="font-medium text-foreground">WhatsMyJob</p>
+            <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+              Aggregates listings from public job board APIs. Job content belongs to each
+              provider and employer.
             </p>
           </div>
-
-          <div className="lg:col-span-6">
-            <h4 className="mb-2 text-xs font-semibold tracking-wider text-foreground uppercase">
-              Job data partners
-            </h4>
-            <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Huge thanks to the teams behind these APIs and feeds. WhatsMyJob aggregates their
-              listings; all trademarks and job content belong to the respective providers.
-            </p>
-            <ul className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-              {JOB_SOURCES_CATALOG.map((source) => (
+          <div>
+            <p className="text-sm font-medium text-foreground">Sources</p>
+            <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              {JOB_SOURCES_CATALOG.slice(0, 6).map((source) => (
                 <li key={source.id}>
                   <a
                     href={source.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group inline-flex flex-col"
+                    className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                   >
-                    <span className="text-sm font-medium text-foreground transition-colors group-hover:text-primary">
-                      {source.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{source.description}</span>
+                    {source.name}
                   </a>
                 </li>
               ))}
             </ul>
           </div>
-
-          <div className="lg:col-span-3">
-            <h4 className="mb-4 text-xs font-semibold tracking-wider text-foreground uppercase">
-              Developer
-            </h4>
-            <ul className="mb-4 space-y-2.5">
-              <li>
-                <a
-                  href={DEVELOPER_LINKEDIN}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
-                >
-                  LinkedIn — Reggie Hermosisima
-                </a>
-              </li>
-              <li>
-                <a
-                  href={DEVELOPER_GITHUB}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
-                >
-                  GitHub — DogoeDude
-                </a>
-              </li>
-            </ul>
-            <div className="flex gap-2">
+          <div className="text-sm">
+            <p className="font-medium text-foreground">Built by</p>
+            <p className="mt-1 text-muted-foreground">
               <a
                 href={DEVELOPER_LINKEDIN}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Developer LinkedIn"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card text-muted-foreground transition-all hover:border-primary/30 hover:text-primary hover:shadow-sm"
+                className="underline-offset-2 hover:underline"
               >
-                <Linkedin className="h-4 w-4" />
+                Reggie Hermosisima
               </a>
+              {' · '}
               <a
                 href={DEVELOPER_GITHUB}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Developer GitHub"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card text-muted-foreground transition-all hover:border-primary/30 hover:text-primary hover:shadow-sm"
+                className="underline-offset-2 hover:underline"
               >
-                <Github className="h-4 w-4" />
+                GitHub
               </a>
-            </div>
+            </p>
           </div>
         </div>
-
-        <div className="border-t border-border/50 pt-8 text-center sm:text-left">
-          <p className="text-sm text-muted-foreground">
-            © {currentYear} WhatsMyJob. Listings © their respective job boards and employers.
-          </p>
-        </div>
+        <p className="mt-8 text-xs text-muted-foreground">
+          © {year} WhatsMyJob
+        </p>
       </div>
     </footer>
   );

@@ -1,72 +1,38 @@
-import type { Metadata } from 'next'
+import type { Metadata } from 'next';
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import './globals.css';
 
-import { Geist, Geist_Mono } from 'next/font/google'
-
-import './globals.css'
-
-
-
-const geistSans = Geist({
-
+const sans = IBM_Plex_Sans({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans-app',
+});
 
-  variable: '--font-geist-sans',
-
-})
-
-
-
-const geistMono = Geist_Mono({
-
+const mono = IBM_Plex_Mono({
   subsets: ['latin'],
-
-  variable: '--font-geist-mono',
-
-})
-
-
+  weight: ['400', '500'],
+  variable: '--font-mono-app',
+});
 
 export const metadata: Metadata = {
-
   title: 'WhatsMyJob',
-
-  description: 'Discover job listings aggregated from top job boards and company career pages.',
-
+  description: 'Search remote and on-site jobs pulled from public job board APIs.',
   icons: {
-
     icon: [{ url: '/job.svg', type: 'image/svg+xml' }],
-
     apple: '/job.svg',
-
   },
-
-}
-
-
+};
 
 export default function RootLayout({
-
   children,
-
 }: Readonly<{
-
-  children: React.ReactNode
-
+  children: React.ReactNode;
 }>) {
-
   return (
-
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen font-sans bg-background text-foreground antialiased">
-
         {children}
-
       </body>
-
     </html>
-
-  )
-
+  );
 }
-

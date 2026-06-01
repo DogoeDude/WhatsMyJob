@@ -16,28 +16,25 @@ export function JobCategoryNav({ value, onChange, disabled }: JobCategoryNavProp
   ];
 
   return (
-    <div className="border-b border-border/60 px-5 py-4 sm:px-7">
-      <p className="section-label mb-3">Browse by field</p>
-      <div className="relative -mx-1">
-        <div className="flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
-          {items.map((item) => {
-            const active = value === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => onChange(item.id)}
-                className={cn(
-                  'filter-chip shrink-0 px-4 py-2 text-sm',
-                  active && 'filter-chip-active'
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
+    <div className="border-b border-border px-4 py-3 sm:px-5">
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+        {items.map((item) => {
+          const active = value === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(item.id)}
+              className={cn(
+                'filter-chip shrink-0',
+                active && 'filter-chip-active'
+              )}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

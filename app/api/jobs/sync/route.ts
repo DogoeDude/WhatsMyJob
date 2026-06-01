@@ -4,6 +4,7 @@ import { syncAllJobProviders, syncJobProvider } from '@/lib/jobs/sync';
 import { getActiveProviders } from '@/lib/jobs/providers';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAdminApi();

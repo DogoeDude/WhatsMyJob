@@ -22,13 +22,13 @@ function FilterPill({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/[0.08] py-1 pl-3 pr-1 text-xs font-semibold text-primary">
+    <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground">
       {label}
       <button
         type="button"
         onClick={onRemove}
-        className="rounded-full p-1 transition-colors hover:bg-primary/15"
-        aria-label={`Remove ${label} filter`}
+        className="rounded p-0.5 hover:bg-background"
+        aria-label={`Remove ${label}`}
       >
         <X className="h-3 w-3" />
       </button>
@@ -55,8 +55,8 @@ export function ActiveFilters({
   if (!hasAny) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border/50 bg-primary/[0.02] px-5 py-3 sm:px-7">
-      <span className="section-label mr-1">Active</span>
+    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/20 px-4 py-2.5 sm:px-5">
+      <span className="text-xs text-muted-foreground">Active:</span>
       {hasSearch && (
         <FilterPill label={`"${search.trim()}"`} onRemove={onClearSearch} />
       )}
@@ -88,7 +88,7 @@ export function ActiveFilters({
         type="button"
         onClick={onClearAll}
         className={cn(
-          'ml-auto text-xs font-semibold text-muted-foreground transition-colors hover:text-destructive'
+          'ml-auto text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline'
         )}
       >
         Clear all

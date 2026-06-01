@@ -72,20 +72,17 @@ export function JobFilters({
   };
 
   return (
-    <div className="space-y-5 border-b border-border/60 px-5 py-5 sm:px-7">
+    <div className="space-y-4 border-b border-border px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="section-label mb-1.5">Filters</p>
-          <p className="text-sm font-semibold text-foreground">Job boards & criteria</p>
-        </div>
+        <p className="text-sm font-medium text-foreground">Filters</p>
         {hasFilters && (
           <button
             type="button"
             disabled={disabled}
             onClick={() => onChange({ sourceIds: [], type: '', location: '' })}
-            className="text-xs font-semibold text-primary hover:text-primary/80 disabled:opacity-50"
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-50"
           >
-            Reset filters
+            Reset
           </button>
         )}
       </div>
@@ -100,7 +97,7 @@ export function JobFilters({
             value.sourceIds.length === 0 && 'filter-chip-active'
           )}
         >
-          All boards
+          All sources
         </button>
         {sources.map((source) => {
           const active = value.sourceIds.includes(source.id);
@@ -114,21 +111,14 @@ export function JobFilters({
               className={cn('filter-chip gap-1.5', active && 'filter-chip-active')}
             >
               {source.name}
-              <span
-                className={cn(
-                  'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                  active ? 'bg-primary-foreground/20' : 'bg-muted text-muted-foreground'
-                )}
-              >
-                {source.count}
-              </span>
+              <span className="tabular-nums opacity-70">({source.count})</span>
             </button>
           );
         })}
       </div>
 
       <SuggestionChips
-        label="Popular types"
+        label="Type"
         suggestions={typeChips}
         activeValues={{ type: value.type, search: activeSearch, location: value.location }}
         onSelect={handleSuggestion}
@@ -136,15 +126,15 @@ export function JobFilters({
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2">
-          <span className="text-xs font-semibold text-muted-foreground">Job type</span>
+        <label className="space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Job type</span>
           <select
             disabled={disabled}
             value={value.type}
             onChange={(e) => onChange({ ...value, type: e.target.value })}
             className={selectSurfaceClass}
           >
-            <option value="">Any type</option>
+            <option value="">Any</option>
             {uniqueTypes.map((t, index) => (
               <option key={`job-type-${index}-${t}`} value={t}>
                 {t}
@@ -152,12 +142,12 @@ export function JobFilters({
             ))}
           </select>
         </label>
-        <label className="space-y-2">
-          <span className="text-xs font-semibold text-muted-foreground">Location contains</span>
+        <label className="space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Location</span>
           <input
             type="text"
             disabled={disabled}
-            placeholder="e.g. Remote, Manila, USA"
+            placeholder="Remote, Manila, USA…"
             value={value.location}
             onChange={(e) => onChange({ ...value, location: e.target.value })}
             className={selectSurfaceClass}
@@ -166,7 +156,7 @@ export function JobFilters({
       </div>
 
       <SuggestionChips
-        label="Locations"
+        label="Location"
         suggestions={locationChips}
         activeValues={{ type: value.type, search: activeSearch, location: value.location }}
         onSelect={handleSuggestion}

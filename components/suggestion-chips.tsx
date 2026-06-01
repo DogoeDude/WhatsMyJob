@@ -35,7 +35,7 @@ export function SuggestionChips({
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
-      <span className="section-label mr-0.5">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}:</span>
       {suggestions.map((suggestion, index) => {
         const active = isActive(suggestion, activeValues);
         return (
@@ -44,7 +44,7 @@ export function SuggestionChips({
             type="button"
             disabled={disabled}
             onClick={() => onSelect(suggestion)}
-            className={cn('filter-chip disabled:opacity-50', active && 'filter-chip-active')}
+            className={cn('filter-chip text-xs disabled:opacity-50', active && 'filter-chip-active')}
           >
             {suggestion.label}
           </button>
