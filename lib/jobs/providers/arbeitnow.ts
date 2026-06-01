@@ -20,7 +20,7 @@ export const arbeitnowProvider: JobProvider = {
   isConfigured: () => true,
   async fetchJobs() {
     const res = await fetch('https://www.arbeitnow.com/api/job-board-api', {
-      next: { revalidate: 0 },
+      cache: 'no-store',
       headers: { Accept: 'application/json' },
     });
 

@@ -125,9 +125,8 @@ export function AdminDashboard() {
   return (
     <PageShell>
       <PageHeader
-        badge="Operations"
-        title="Admin dashboard"
-        subtitle="Sync job listings from Remotive, Arbeitnow, and optional Adzuna into your database."
+        title="Admin"
+        subtitle="Sync job listings from configured APIs into your database."
         action={
           <Button onClick={() => runSync()} disabled={syncingAll || syncingId !== null}>
             {syncingAll ? (
@@ -152,26 +151,22 @@ export function AdminDashboard() {
             label="Total jobs"
             value={isLoading ? '…' : (data?.stats.totalJobs ?? 0)}
             icon={Database}
-            iconColor="blue"
           />
           <StatCard
             label="Active sources"
             value={isLoading ? '…' : `${activeSources}/${totalSources}`}
             hint="API-connected"
             icon={Zap}
-            iconColor="purple"
           />
           <StatCard
             label="Companies"
             value={isLoading ? '…' : (data?.stats.companyCount ?? 0)}
             icon={CheckCircle}
-            iconColor="green"
           />
           <StatCard
             label="Locations"
             value={isLoading ? '…' : (data?.stats.locationCount ?? 0)}
             icon={AlertCircle}
-            iconColor="amber"
           />
         </div>
 

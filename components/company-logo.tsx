@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { proxiedLogoUrl } from '@/lib/jobs/logo-proxy';
+import { buildLogoImgSources } from '@/lib/jobs/resolve-logo';
 
 type CompanyLogoProps = {
   company: string;
@@ -18,32 +18,37 @@ const sizeClasses = {
 };
 
 export function CompanyLogo({ company, logoUrl, size = 'md', className }: CompanyLogoProps) {
-  const [failed, setFailed] = useState(false);
-  const initial = (company.trim().charAt(0) || '?').toUpperCase();
-  const showImage = Boolean(logoUrl) && !failed;
+  const sources = useMemo(() => buildLogoImgSources(logoUrl, company), [logoUrl, company]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [logoUrl, company]);
+
+  const src = sources[index];
+  const showImage = index < sources.length && Boolean(src);
 
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-primary/10',
+        'flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted font-semibold text-muted-foreground',
         sizeClasses[size],
-        showImage
-          ? 'bg-background'
-          : 'bg-gradient-to-br from-primary/15 to-primary/5 font-bold text-primary',
+        showImage && 'bg-background',
         className
       )}
     >
       {showImage ? (
-        // eslint-disable-next-line @next/next/no-img-element -- proxied external logos
+        // eslint-disable-next-line @next/next/no-img-element
         <img
-          key={logoUrl}
-          src={proxiedLogoUrl(logoUrl!)}
+          key={src}
+          src={src}
           alt=""
+          referrerPolicy="no-referrer"
           className="h-full w-full object-contain p-1"
-          onError={() => setFailed(true)}
+          onError={() => setIndex((i) => i + 1)}
         />
       ) : (
-        initial
+        (company.trim().charAt(0) || '?').toUpperCase()
       )}
     </div>
   );
