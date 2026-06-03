@@ -1,77 +1,127 @@
 # WhatsMyJob
 
-Job discovery platform with real authentication (Neon Postgres + Better Auth).
+Search remote and on-site roles from multiple public job boards in one place. Browse with filters and categories, open full descriptions in a split view, and apply on the original listing.
 
-## Setup
+Built with **Next.js**, **Neon Postgres**, and **Better Auth**.
 
-### 1. Neon database
+---
+
+## Features
+
+- **Multi-source search** — Remotive, Arbeitnow, Jobicy, RemoteOK, and more (see [Job sources](#job-sources))
+- **Split-pane UI** — Job list, filters sidebar, and detail panel that fill the viewport
+- **Search & filters** — Title, company, location, job type, category, and source
+- **Live + cached listings** — Live APIs when the DB is empty; faster reads from Postgres after sync
+- **Company logos** — Resolved from provider data, direct URLs, or favicon fallbacks
+- **Auth** — Register, sign in, role-based access (`user` / `admin`)
+- **Admin sync** — Pull all configured sources into Neon from `/admin`
+- **Analytics** — Signed-in stats at `/analytics` (when enabled)
+
+---
+
+## Tech stack
+
+| Layer | Tools |
+|--------|--------|
+| Framework | [Next.js](https://nextjs.org/) 16 (App Router) |
+| UI | React 19, Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com/) |
+| Database | [Neon](https://neon.tech) Postgres + [Prisma](https://www.prisma.io/) |
+| Auth | [Better Auth](https://www.better-auth.com/) |
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/DogoeDude/WhatsMyJob.git
+cd WhatsMyJob
+npm install
+cp .env.example .env.local   # then edit values
+npm run db:push
+npm run db:generate
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+> **Tip:** Several sources work with no API keys. Add [JSearch](#recommended-env-for-philippines--us) for Google-for-Jobs coverage (e.g. Philippines + US).
+
+---
+
+## Setup (step by step)
+
+### 1. Database (Neon)
 
 1. Create a project at [neon.tech](https://neon.tech).
-2. Copy the **connection string** (PostgreSQL, with `?sslmode=require`).
+2. Copy the **PostgreSQL connection string** (include `?sslmode=require`).
 
 ### 2. Environment variables
 
-Copy `.env.example` to `.env.local` and fill in:
+Copy `.env.example` to `.env.local` and set at minimum:
 
-```bash
+```env
 DATABASE_URL="postgresql://..."
-BETTER_AUTH_SECRET="..."   # openssl rand -base64 32
+BETTER_AUTH_SECRET="..."          # openssl rand -base64 32
 BETTER_AUTH_URL="http://localhost:3000"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-### 3. Database schema
+See `.env.example` for optional job API keys.
+
+### 3. Schema & Prisma client
 
 ```bash
 npm run db:push
 npm run db:generate
 ```
 
-### 4. Run the app
+If `db:generate` fails on Windows with a file-lock error, stop the dev server and run it again.
+
+### 4. Run locally
 
 ```bash
-npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+### 5. First data load
 
-## Auth
+1. Register at `/register`, then promote yourself (see [Admin access](#admin-access)).
+2. Sign in → **Admin** → **Sync all sources**.
+3. Open **Jobs** (`/`) — listings appear from the DB; use **Refresh** for live API results.
 
-- **Register** at `/register` — creates a `user` role account.
-- **Sign in** at `/login` — one form; admins are sent to `/admin`, members to `/` (or a safe callback like `/analytics`).
-- **Admin routes** (`/admin`) require `role = admin` on your user.
+---
 
-### Create an admin user
+## Admin access
 
-1. Register a normal account with your email.
-2. Promote it:
+| Step | Action |
+|------|--------|
+| 1 | Register at `/register` (default role: `user`) |
+| 2 | Run `npm run make-admin -- your@email.com` |
+| 3 | Sign in at `/login` — admins are redirected to `/admin` |
 
-```bash
-npm run make-admin -- your@email.com
-```
+`/admin` and sync APIs require `role = admin`.
 
-3. Sign in at `/login` — you will land on `/admin` automatically.
+---
 
-## Job listings (APIs)
+## Job sources
 
-Listings are synced into Postgres from **public job board APIs** (not scraping):
+Listings are ingested via **official public APIs** (not HTML scraping).
 
-| Source | Keys required | Notes |
-|--------|---------------|--------|
-| [Remotive](https://remotive.com/api/remote-jobs) | No | Remote tech jobs |
-| [Arbeitnow](https://www.arbeitnow.com/api/job-board-api) | No | EU / remote friendly |
-| [Jobicy](https://jobicy.com/api/v2/remote-jobs) | No | Remote jobs (50 per fetch) |
-| [RemoteOK](https://remoteok.com/api) | No | Remote jobs |
-| [RemoteJobs.org](https://remotejobs.org/api/v1/jobs) | No | Remote jobs (paginated) |
-| [Career Nest](https://careernest.cloud/api-docs) | No | Global feed (paginated) |
-| **[JSearch](https://www.openwebninja.com/api/jsearch)** | **`JSEARCH_API_KEY` or `RAPIDAPI_KEY`** | **Google for Jobs — set `JSEARCH_COUNTRIES=ph,us` for Philippines + US** |
-| **[Reed](https://www.reed.co.uk/developers)** | **`REED_API_KEY`** | **UK job board (optional)** |
-| [Adzuna](https://developer.adzuna.com/) | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | US / SG / UK / EU — no PH feed; use `ADZUNA_COUNTRIES=us,sg` |
+| Source | API keys | Notes |
+|--------|----------|--------|
+| [Remotive](https://remotive.com/api/remote-jobs) | — | Remote tech |
+| [Arbeitnow](https://www.arbeitnow.com/api/job-board-api) | — | EU / remote friendly |
+| [Jobicy](https://jobicy.com/api/v2/remote-jobs) | — | Remote (50 per fetch) |
+| [RemoteOK](https://remoteok.com/api) | — | Remote |
+| [RemoteJobs.org](https://remotejobs.org/api/v1/jobs) | — | Paginated remote |
+| [Career Nest](https://careernest.cloud/api-docs) | — | Global feed |
+| [JSearch](https://www.openwebninja.com/api/jsearch) | `JSEARCH_API_KEY` or `RAPIDAPI_KEY` | Google for Jobs aggregator |
+| [Reed](https://www.reed.co.uk/developers) | `REED_API_KEY` | UK (optional) |
+| [Adzuna](https://developer.adzuna.com/) | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | US / SG / UK / EU (no PH) |
 
-The home page loads **live API results** when the database is empty. After sync, listings are served from Postgres.
+**Behavior:** If Neon has no rows, the app can show **live** results from providers. After **Sync all sources**, the home page prefers the database for speed; **Refresh** on the jobs UI requests live data again.
 
-### Recommended setup (`.env.local`)
+### Recommended env for Philippines + US
 
 ```env
 JSEARCH_API_KEY=your_key
@@ -81,39 +131,77 @@ ADZUNA_APP_KEY=your_key
 ADZUNA_COUNTRIES=us,sg
 ```
 
-**Philippines:** JSearch with `country=ph` is the main source. Adzuna does not support PH; `sg` adds nearby regional listings.
+Philippines-focused search relies mainly on **JSearch** (`country=ph`). Adzuna has no PH feed; `sg` adds regional listings.
 
-Restart dev server, then **Admin → Sync all sources**.
+---
 
-### Job filters (API)
+## Jobs API
 
-`GET /api/jobs` supports:
+`GET /api/jobs`
 
-| Param | Example | Description |
-|-------|---------|-------------|
+| Parameter | Example | Description |
+|-----------|---------|-------------|
 | `q` | `?q=react` | Search title, company, location, description |
-| `source` | `?source=remotive` | Filter by job board (repeat or comma-separated) |
-| `type` | `?type=remote` | Job type contains |
-| `location` | `?location=USA` | Location contains |
-| `limit` | `?limit=50` | Max results (default 150) |
+| `source` | `?source=remotive` | Filter by board (repeat or comma-separated) |
+| `type` | `?type=remote` | Job type (substring) |
+| `location` | `?location=Manila` | Location (substring) |
+| `category` | `?category=it` | Category id |
+| `limit` | `?limit=50` | Page size |
+| `offset` | `?offset=50` | Pagination |
+| `refresh` | `?refresh=1` | Prefer live provider fetch |
 
-### First sync
+Other routes: `GET /api/jobs/[id]`, `POST /api/jobs/sync` (admin), `GET /api/jobs/stats`, etc.
 
-1. Apply schema: `npm run db:push`
-2. **Stop the dev server**, then: `npm run db:generate` (fixes Prisma client / “Failed to load jobs”)
-3. `npm run dev` → sign in as admin → **Admin** → **Sync all sources**
-4. Open **Jobs** (`/`) — live APIs work immediately; sync stores them in Neon
-
-Optional Adzuna vars in `.env.local` — see `.env.example`.
+---
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server |
+| `npm run dev` | Development server |
 | `npm run build` | Production build |
-| `npm run start` | Run production server |
-| `npm run lint` | Run ESLint |
+| `npm run start` | Run production build |
+| `npm run lint` | ESLint |
 | `npm run db:push` | Apply Prisma schema to Neon |
-| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:generate` | Regenerate Prisma client |
+| `npm run db:studio` | Prisma Studio GUI |
 | `npm run make-admin` | Promote user to admin by email |
+| `npm run test:jobs` | Test job provider fetch (requires `.env.local`) |
+
+---
+
+## Project layout
+
+```
+app/
+  page.tsx              # Jobs home (split view)
+  admin/                # Sync dashboard
+  analytics/            # Stats (auth)
+  login/ register/       # Auth pages
+  api/jobs/             # Listings, sync, detail
+components/
+  jobs-home.tsx         # Main jobs UI
+  jobs-sidebar.tsx      # Search & filters
+  job-detail-panel.tsx  # Detail pane
+lib/jobs/               # Providers, query, sync, logos
+prisma/schema.prisma    # Database models
+scripts/                # make-admin, test-providers
+```
+
+---
+
+## Troubleshooting
+
+| Issue | What to try |
+|-------|-------------|
+| **Failed to load jobs** / Prisma errors | Stop dev server → `npm run db:generate` → restart |
+| **Only one source on page 1** | Use **Refresh** or run admin sync; mixed ordering is applied in the service layer |
+| **Letter avatars instead of logos** | Logos use direct URLs + favicon fallback; some boards block server-side image fetch |
+| **Stale listings** | Admin **Sync all sources** or jobs UI **Refresh** (`refresh=1`) |
+| **Push rejected on GitHub** | `git pull --rebase origin main` then `git push` |
+
+---
+
+## License
+
+Private project — all rights reserved unless stated otherwise.
