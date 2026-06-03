@@ -110,6 +110,10 @@ Optional Adzuna vars in `.env.local` — see `.env.example`.
 
 | Command | Description |
 |---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run start` | Run production server |
+| `npm run lint` | Run ESLint |
 | `npm run db:push` | Apply Prisma schema to Neon |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run make-admin` | Promote user to admin by email |

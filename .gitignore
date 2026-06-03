@@ -1,8 +1,15 @@
-# Environment variables
-.env*.local
-
-# Common ignores
+# Dependencies & build
 node_modules
 .next/
+out/
+
+# Environment
+.env
+.env*.local
+
+# OS & editor
 .DS_Store
+*.pem
+
+# Deploy
 .vercel
