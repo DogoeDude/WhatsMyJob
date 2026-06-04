@@ -18,6 +18,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  applications  JobApplication[]
 
   @@unique([email])
   @@map("user")
@@ -83,6 +84,30 @@ model JobSource {
   @@map("job_source")
 }
 
+/// Applicant-tracked job applications (where you applied, status, replies).
+model JobApplication {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobListingId String?
+  jobListing   JobListing? @relation(fields: [jobListingId], references: [id], onDelete: SetNull)
+  title        String
+  company      String
+  location     String      @default("")
+  applyUrl     String?
+  source       String?
+  status       String      @default("applied")
+  hasReply     Boolean     @default(false)
+  notes        String?     @db.Text
+  appliedAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([userId, jobListingId])
+  @@index([userId, appliedAt])
+  @@index([userId, status])
+  @@map("job_application")
+}
+
 model JobListing {
   id           String    @id @default(cuid())
   externalId   String
@@ -98,11 +123,13 @@ model JobListing {
   benefits     Json      @default("[]")
   tags         Json      @default("[]")
   applyUrl     String?
+  applyOnSite  Boolean   @default(false)
   logoUrl      String?
   postedAt     DateTime?
   syncedAt     DateTime  @default(now())
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  applications JobApplication[]
 
   @@unique([sourceId, externalId])
   @@index([title])

@@ -11,14 +11,15 @@ export async function GET(request: NextRequest) {
     const filters = parseJobFilters(searchParams);
     const requested = Number(searchParams.get('limit'));
     const offset = Math.max(0, Number(searchParams.get('offset') ?? 0) || 0);
-    const forceLive = searchParams.get('refresh') === '1';
+    const refresh = searchParams.get('refresh') === '1';
     const limit = resolveJobListLimit(
       filters.search,
       offset,
       Number.isNaN(requested) ? undefined : requested
     );
 
-    const result = await getJobsForApp(filters, limit, offset, { forceLive });
+    const includeMeta = searchParams.get('meta') !== '0';
+    const result = await getJobsForApp(filters, limit, offset, { refresh, includeMeta });
 
     return NextResponse.json(
       {
@@ -38,7 +39,9 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'no-store, max-age=0',
+          'Cache-Control': refresh
+            ? 'no-store, max-age=0'
+            : 'private, max-age=15, stale-while-revalidate=60',
         },
       }
     );

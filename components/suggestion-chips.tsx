@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import type { FilterSuggestion } from '@/lib/jobs/filter-suggestions';
+import { filterChipActiveClass, filterChipClass } from '@/lib/ui-classes';
 
 type SuggestionChipsProps = {
   label: string;
@@ -10,8 +11,12 @@ type SuggestionChipsProps = {
   onSelect: (suggestion: FilterSuggestion) => void;
   disabled?: boolean;
   className?: string;
-  /** Stacked label above chips (sidebar layout). */
   layout?: 'inline' | 'stacked';
+  compact?: boolean;
+  hideLabel?: boolean;
+  maxItems?: number;
+  /** Softer pills for the search hero */
+  variant?: 'default' | 'search';
 };
 
 function isActive(suggestion: FilterSuggestion, active?: SuggestionChipsProps['activeValues']) {
@@ -33,41 +38,66 @@ export function SuggestionChips({
   disabled,
   className,
   layout = 'inline',
+  compact = false,
+  hideLabel = false,
+  maxItems,
+  variant = 'default',
 }: SuggestionChipsProps) {
-  if (suggestions.length === 0) return null;
+  const visible =
+    maxItems != null && maxItems > 0 ? suggestions.slice(0, maxItems) : suggestions;
+  if (visible.length === 0) return null;
 
   const stacked = layout === 'stacked';
+  const searchVariant = variant === 'search';
 
   return (
     <div
       className={cn(
-        stacked ? 'space-y-2' : 'flex flex-wrap items-center gap-2',
+        stacked ? 'space-y-2' : compact ? 'space-y-2' : 'flex flex-wrap items-center gap-2',
         className
       )}
     >
-      <span
+      {!hideLabel && (
+        <span
+          className={cn(
+            'text-xs font-medium text-muted-foreground',
+            stacked && 'text-[11px] uppercase tracking-wider',
+            searchVariant && 'font-normal normal-case tracking-normal text-muted-foreground/90'
+          )}
+        >
+          {stacked || compact ? label : `${label}:`}
+        </span>
+      )}
+      <div
         className={cn(
-          'text-xs font-medium text-muted-foreground',
-          stacked && 'block uppercase tracking-wide'
+          'flex flex-wrap gap-1.5',
+          stacked && 'w-full',
+          compact && 'gap-1.5'
         )}
       >
-        {stacked ? label : `${label}:`}
-      </span>
-      <div className={cn('flex flex-wrap gap-1.5', stacked && 'w-full')}>
-      {suggestions.map((suggestion, index) => {
-        const active = isActive(suggestion, activeValues);
-        return (
-          <button
-            key={`${suggestion.kind}-${suggestion.label}-${index}`}
-            type="button"
-            disabled={disabled}
-            onClick={() => onSelect(suggestion)}
-            className={cn('filter-chip text-xs disabled:opacity-50', active && 'filter-chip-active')}
-          >
-            {suggestion.label}
-          </button>
-        );
-      })}
+        {visible.map((suggestion, index) => {
+          const active = isActive(suggestion, activeValues);
+          return (
+            <button
+              key={`${suggestion.kind}-${suggestion.label}-${index}`}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelect(suggestion)}
+              className={cn(
+                searchVariant
+                  ? cn(
+                      'rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                      active
+                        ? 'bg-foreground text-background shadow-sm'
+                        : 'bg-background/80 text-muted-foreground ring-1 ring-border/60 hover:bg-background hover:text-foreground'
+                    )
+                  : cn(filterChipClass, compact && 'px-2 py-1', active && filterChipActiveClass)
+              )}
+            >
+              {suggestion.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

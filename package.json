@@ -7,16 +7,12 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "db:generate": "dotenv -e .env.local -- prisma generate",
-    "db:push": "dotenv -e .env.local -- prisma db push",
-    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
-    "db:studio": "dotenv -e .env.local -- prisma studio",
-    "make-admin": "dotenv -e .env.local -- tsx scripts/make-admin.ts",
-    "test:jobs": "dotenv -e .env.local -- tsx scripts/test-providers.ts"
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
-    "@prisma/client": "6.19.3",
+    "@prisma/client": "^6.19.3",
     "@radix-ui/react-accordion": "1.2.12",
     "@radix-ui/react-alert-dialog": "1.1.15",
     "@radix-ui/react-aspect-ratio": "1.1.8",
@@ -46,11 +42,13 @@
     "@radix-ui/react-tooltip": "1.2.8",
     "@vercel/analytics": "1.6.1",
     "autoprefixer": "^10.4.20",
-    "better-auth": "^1.6.12",
+    "better-auth": "1.6.12",
+    "kysely": "0.28.17",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
     "date-fns": "4.1.0",
+    "@tanstack/react-virtual": "^3.13.12",
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
     "lucide-react": "^0.564.0",
@@ -61,11 +59,18 @@
     "react-dom": "^19",
     "react-hook-form": "^7.54.1",
     "react-resizable-panels": "^2.1.7",
-    "recharts": "2.15.0",
     "sonner": "^1.7.1",
     "tailwind-merge": "^3.3.1",
     "vaul": "^1.1.2",
     "zod": "^3.24.1"
+  },
+  "overrides": {
+    "kysely": "0.28.17"
+  },
+  "pnpm": {
+    "overrides": {
+      "kysely": "0.28.17"
+    }
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.0",

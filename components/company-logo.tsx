@@ -43,6 +43,8 @@ export function CompanyLogo({ company, logoUrl, size = 'md', className }: Compan
           key={src}
           src={src}
           alt=""
+          loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
           className="h-full w-full object-contain p-1"
           onError={() => setIndex((i) => i + 1)}

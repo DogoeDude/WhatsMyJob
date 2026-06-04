@@ -1,6 +1,6 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import type { SourceFacet } from '@/lib/jobs/filters';
 import type { JobFilterState } from '@/components/job-filters';
 import { cn } from '@/lib/utils';
@@ -23,12 +23,12 @@ function FilterPill({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground">
-      {label}
+    <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-background/90 py-0.5 pr-1 pl-2.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/70">
+      <span className="truncate">{label}</span>
       <button
         type="button"
         onClick={onRemove}
-        className="rounded p-0.5 hover:bg-background"
+        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         aria-label={`Remove ${label}`}
       >
         <X className="h-3 w-3" />
@@ -56,60 +56,9 @@ export function ActiveFilters({
 
   if (!hasAny) return null;
 
-  if (variant === 'sidebar') {
-    return (
-      <div className="space-y-2 rounded-md border border-border/80 bg-card/60 p-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Active filters
-          </span>
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Clear all
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {hasSearch && (
-            <FilterPill label={`"${search.trim()}"`} onRemove={onClearSearch} />
-          )}
-          {filters.sourceIds.map((id) => (
-            <FilterPill
-              key={id}
-              label={sourceNames.get(id) ?? id}
-              onRemove={() =>
-                onChangeFilters({
-                  ...filters,
-                  sourceIds: filters.sourceIds.filter((s) => s !== id),
-                })
-              }
-            />
-          ))}
-          {filters.type && (
-            <FilterPill
-              label={filters.type}
-              onRemove={() => onChangeFilters({ ...filters, type: '' })}
-            />
-          )}
-          {filters.location && (
-            <FilterPill
-              label={filters.location}
-              onRemove={() => onChangeFilters({ ...filters, location: '' })}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/20 px-4 py-2.5 sm:px-5">
-      <span className="text-xs text-muted-foreground">Active:</span>
-      {hasSearch && (
-        <FilterPill label={`"${search.trim()}"`} onRemove={onClearSearch} />
-      )}
+  const pills = (
+    <>
+      {hasSearch && <FilterPill label={search.trim()} onRemove={onClearSearch} />}
       {filters.sourceIds.map((id) => (
         <FilterPill
           key={id}
@@ -134,6 +83,34 @@ export function ActiveFilters({
           onRemove={() => onChangeFilters({ ...filters, location: '' })}
         />
       )}
+    </>
+  );
+
+  if (variant === 'sidebar') {
+    return (
+      <div className="mx-4 rounded-xl bg-gradient-to-br from-primary/12 via-primary/5 to-transparent p-3 ring-1 ring-primary/15">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Applied
+          </span>
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="rounded-md px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground"
+          >
+            Clear all
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">{pills}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/20 px-4 py-2.5 sm:px-5">
+      <span className="text-xs text-muted-foreground">Active:</span>
+      {pills}
       <button
         type="button"
         onClick={onClearAll}

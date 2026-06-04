@@ -10,6 +10,8 @@ export type Job = {
   requirements: string[];
   benefits: string[];
   postedDate: string;
+  /** Epoch ms for stable sort (newest first). */
+  postedAtMs?: number;
   applyUrl?: string;
   /** Provider id, e.g. remotive, arbeitnow */
   sourceId?: string;

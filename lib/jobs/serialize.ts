@@ -33,6 +33,7 @@ export function jobListingToJob(row: DbJob): Job {
     requirements: parseJsonStringArray(row.requirements),
     benefits: parseJsonStringArray(row.benefits),
     postedDate: formatPostedDate(row.postedAt),
+    postedAtMs: row.postedAt?.getTime() ?? 0,
     applyUrl: row.applyUrl ?? undefined,
     logoUrl: row.logoUrl ?? undefined,
     sourceId: row.source.id,

@@ -8,6 +8,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { CompanyLogo } from '@/components/company-logo';
+import { JobRecencyBadge } from '@/components/job-recency-badge';
 import type { Job } from '@/lib/jobs/types';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +62,7 @@ export function JobDetailHeader({ job, className }: JobDetailHeaderProps) {
   return (
     <header
       className={cn(
-        'shrink-0 border-b border-border bg-gradient-to-b from-muted/40 via-card to-card px-4 py-4 sm:px-6 sm:py-5 lg:px-6',
+        'shrink-0 border-b border-border bg-gradient-to-b from-muted/40 via-card to-card px-4 py-4 max-lg:px-4 sm:px-6 sm:py-5 lg:px-6',
         className
       )}
     >
@@ -74,6 +75,7 @@ export function JobDetailHeader({ job, className }: JobDetailHeaderProps) {
           />
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">
+              <JobRecencyBadge postedAtMs={job.postedAtMs} className="normal-case" />
               {workplace && (
                 <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                   {workplace}
@@ -100,7 +102,7 @@ export function JobDetailHeader({ job, className }: JobDetailHeaderProps) {
               <span className="truncate font-medium text-foreground/90">{job.company}</span>
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
               {job.location?.trim() && (
                 <MetaPill icon={MapPin} label="Location" value={job.location} />
               )}

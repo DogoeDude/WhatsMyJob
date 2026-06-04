@@ -4,7 +4,6 @@ import { fetchLiveJobs } from '@/lib/jobs/live-fetch';
 import { resolveJobLogoUrl } from '@/lib/jobs/resolve-logo';
 import type { Job } from '@/lib/jobs/types';
 
-const DB_CACHE_TTL_MS = 10 * 60 * 1000;
 const LIVE_CACHE_TTL_MS = 15 * 60 * 1000;
 
 type LogoCache = {
@@ -14,7 +13,6 @@ type LogoCache = {
   byCompany: Map<string, string>;
 };
 
-let dbLogoCache: LogoCache | null = null;
 let liveLogoCache: LogoCache | null = null;
 
 function jobMatchKey(sourceId: string | undefined, company: string, title?: string) {
@@ -52,46 +50,48 @@ function emptyCache(): LogoCache {
   };
 }
 
-async function buildLogoCacheFromDb(): Promise<LogoCache> {
-  if (dbLogoCache && Date.now() - dbLogoCache.at < DB_CACHE_TTL_MS) {
-    return dbLogoCache;
-  }
+/** Scoped logo lookup for companies on the current page only. */
+async function buildLogoCacheForJobs(jobs: Job[]): Promise<LogoCache> {
+  const companies = [
+    ...new Set(jobs.map((j) => j.company.trim()).filter((c) => c.length > 0)),
+  ];
+  if (companies.length === 0) return emptyCache();
 
   const rows = await prisma.jobListing.findMany({
-    where: { logoUrl: { not: null } },
+    where: {
+      logoUrl: { not: null },
+      company: { in: companies },
+    },
     select: { sourceId: true, company: true, title: true, logoUrl: true },
     orderBy: { syncedAt: 'desc' },
-    take: 8000,
+    take: Math.min(companies.length * 4, 200),
   });
 
   const cache = emptyCache();
   for (const row of rows) {
     if (!row.logoUrl) continue;
-    const job: Job = {
-      id: '',
-      title: row.title,
-      company: row.company,
-      location: '',
-      salary: '',
-      type: '',
-      tags: [],
-      description: '',
-      requirements: [],
-      benefits: [],
-      postedDate: '',
-      logoUrl: row.logoUrl,
-      sourceId: row.sourceId,
-    };
-    ingestJobsIntoCache([job], cache);
+    ingestJobsIntoCache(
+      [
+        {
+          id: '',
+          title: row.title,
+          company: row.company,
+          location: '',
+          salary: '',
+          type: '',
+          tags: [],
+          description: '',
+          requirements: [],
+          benefits: [],
+          postedDate: '',
+          logoUrl: row.logoUrl,
+          sourceId: row.sourceId,
+        },
+      ],
+      cache
+    );
   }
-
-  dbLogoCache = cache;
   return cache;
-}
-
-/** Start live logo map in parallel with the DB job query. */
-export function primeLiveLogoCache(): Promise<LogoCache> {
-  return buildLogoCacheFromLive();
 }
 
 /** Cached live API logos — used when DB rows are missing logoUrl. */
@@ -101,7 +101,7 @@ async function buildLogoCacheFromLive(): Promise<LogoCache> {
   }
 
   const cache = emptyCache();
-  const { jobs } = await fetchLiveJobs(600);
+  const { jobs } = await fetchLiveJobs(200);
   ingestJobsIntoCache(jobs, cache);
   liveLogoCache = cache;
   return cache;
@@ -123,11 +123,13 @@ function applyLogoCache(jobs: Job[], cache: LogoCache): Job[] {
 }
 
 export type EnrichLogosOptions = {
-  liveCacheReady?: Promise<LogoCache>;
+  /** Only for manual live refresh — never on normal list loads. */
+  allowLiveCache?: boolean;
 };
 
 /**
- * Fill missing logos from DB + live maps, then ensure every job has a display URL.
+ * Fill missing logos from a small DB lookup, then favicon/avatar fallback.
+ * Avoids fetching hundreds of jobs from external APIs on every page view.
  */
 export async function enrichJobsWithLogos(
   jobs: Job[],
@@ -137,18 +139,18 @@ export async function enrichJobsWithLogos(
 
   let result = jobs;
 
-  try {
-    const dbCache = await buildLogoCacheFromDb();
-    result = applyLogoCache(result, dbCache);
-  } catch (err) {
-    console.warn('[enrichJobsWithLogos] db cache', err);
-  }
-
   if (result.some((j) => !j.logoUrl)) {
     try {
-      const liveCache = options?.liveCacheReady
-        ? await options.liveCacheReady
-        : await buildLogoCacheFromLive();
+      const cache = await buildLogoCacheForJobs(result);
+      result = applyLogoCache(result, cache);
+    } catch (err) {
+      console.warn('[enrichJobsWithLogos] scoped db cache', err);
+    }
+  }
+
+  if (options?.allowLiveCache && result.some((j) => !j.logoUrl)) {
+    try {
+      const liveCache = await buildLogoCacheFromLive();
       result = applyLogoCache(result, liveCache);
     } catch (err) {
       console.warn('[enrichJobsWithLogos] live cache', err);
@@ -187,6 +189,5 @@ async function backfillLogosToDatabase(jobs: Job[]) {
 }
 
 export function clearLogoCache() {
-  dbLogoCache = null;
   liveLogoCache = null;
 }

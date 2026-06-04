@@ -1,28 +1,32 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  devIndicators: false,
+  // Prevent Next from using C:\Users\Reji\ as the monorepo root (wrong lockfile).
+  outputFileTracingRoot: projectRoot,
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    remotePatterns: [
+      { protocol: 'https', hostname: 'www.google.com', pathname: '/s2/favicons/**' },
+      { protocol: 'https', hostname: 'ui-avatars.com', pathname: '/api/**' },
+      { protocol: 'https', hostname: 'icons.duckduckgo.com', pathname: '/**' },
+    ],
   },
-  // Keep Better Auth / Prisma out of Turbopack bundle (fixes kysely adapter errors)
-  serverExternalPackages: [
-    'better-auth',
-    '@better-auth/core',
-    '@better-auth/kysely-adapter',
-    'kysely',
-    '@prisma/client',
-    'prisma',
-  ],
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'date-fns'],
+  },
+  // Prisma + auth: keep server bundles from pulling broken optional peers.
+  serverExternalPackages: ['@prisma/client', 'prisma', 'better-auth'],
   turbopack: {
-    root: __dirname,
+    root: projectRoot,
+    resolveAlias: {
+      kysely: path.join(projectRoot, 'node_modules', 'kysely'),
+    },
   },
 };
 

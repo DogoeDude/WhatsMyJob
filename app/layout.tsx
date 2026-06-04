@@ -1,37 +1,35 @@
-import type { Metadata } from 'next';
-import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
-import './globals.css';
+import type { Metadata } from 'next'
+import { headers } from 'next/headers'
+import { Geist, Geist_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { auth } from '@/lib/auth'
+import { SessionProvider } from '@/lib/session-provider'
+import './globals.css'
 
-const sans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans-app',
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-mono-app',
-});
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export const metadata: Metadata = {
   title: 'WhatsMyJob',
-  description: 'Search remote and on-site jobs pulled from public job board APIs.',
+  description: 'Search remote and on-site jobs from public job board APIs.',
   icons: {
     icon: [{ url: '/job.svg', type: 'image/svg+xml' }],
     apple: '/job.svg',
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth.api.getSession({ headers: await headers() });
+
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
-      <body className="min-h-dvh font-sans bg-background text-foreground antialiased">
-        {children}
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} bg-background`}>
+      <body className="font-sans antialiased">
+        <SessionProvider initialSession={session ?? null}>{children}</SessionProvider>
+        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   );

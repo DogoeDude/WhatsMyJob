@@ -7,6 +7,7 @@ import { AuthShell } from '@/components/auth-shell';
 import { inputSurfaceClass } from '@/lib/ui-classes';
 import { getPostLoginPath } from '@/lib/auth-redirect';
 import { authClient } from '@/lib/auth-client';
+import { useAppSession } from '@/lib/use-app-session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,7 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { refresh: refreshSession } = useAppSession();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +43,7 @@ function LoginForm() {
       const userRole = (session?.user as { role?: string } | undefined)?.role ?? 'user';
       const destination = getPostLoginPath(userRole, searchParams.get('callbackUrl'));
 
+      await refreshSession();
       router.push(destination);
       router.refresh();
     } catch {
