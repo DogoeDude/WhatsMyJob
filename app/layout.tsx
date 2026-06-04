@@ -16,12 +16,12 @@ export const metadata: Metadata = {
     icon: [{ url: '/job.svg', type: 'image/svg+xml' }],
     apple: '/job.svg',
   },
-}
+};
 
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   const session = await auth.api.getSession({ headers: await headers() });
 
@@ -32,5 +32,5 @@ export default async function RootLayout({
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
-  )
+  );
 }
