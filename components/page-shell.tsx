@@ -1,5 +1,5 @@
 import { Footer } from '@/components/footer';
-import { Navbar } from '@/components/navbar-client';
+import { Navbar } from '@/components/navbar';
 import { pageContainerClass } from '@/lib/ui-classes';
 import { cn } from '@/lib/utils';
 

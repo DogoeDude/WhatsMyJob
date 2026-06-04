@@ -33,9 +33,13 @@ export async function getOptionalSession() {
 }
 
 export async function redirectIfAuthenticated() {
-  const session = await getOptionalSession();
-  if (session) {
-    const role = (session.user as { role?: string }).role ?? 'user';
-    redirect(getAuthenticatedHomePath(role));
+  try {
+    const session = await getOptionalSession();
+    if (session) {
+      const role = (session.user as { role?: string }).role ?? 'user';
+      redirect(getAuthenticatedHomePath(role));
+    }
+  } catch (err) {
+    console.error('[redirectIfAuthenticated]', err);
   }
 }

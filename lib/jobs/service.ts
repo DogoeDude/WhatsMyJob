@@ -6,10 +6,10 @@ import {
   type JobListFilters,
   type SourceFacet,
 } from '@/lib/jobs/filters';
-import { enrichJobsWithLogos, clearLogoCache, primeLiveLogoCache } from '@/lib/jobs/enrich-logos';
+import { enrichJobsWithLogos, clearLogoCache } from '@/lib/jobs/enrich-logos';
 import { fetchLiveJobs, interleaveJobsBySource } from '@/lib/jobs/live-fetch';
 import { getTopLocationsFromJobs } from '@/lib/jobs/filter-suggestions';
-import { dedupeStrings } from '@/lib/jobs/utils';
+import { dedupeStrings, sortJobsByRecency } from '@/lib/jobs/utils';
 import {
   countJobListings,
   getDistinctJobTypes,
@@ -65,39 +65,66 @@ export async function getAppJobStats() {
   };
 }
 
+export type GetJobsOptions = {
+  /** User clicked Refresh — fetch live APIs, newest first (stable). */
+  refresh?: boolean;
+  /** Force live APIs (alias for refresh). */
+  forceLive?: boolean;
+  /** When false, skip facets/count queries (faster list paint). */
+  includeMeta?: boolean;
+};
+
+export async function getJobsFilterMeta(filters: JobListFilters) {
+  const [facets, types, totalMatching, locationSuggestions] = await Promise.all([
+    getSourceFacetsFromDb(filters),
+    getDistinctJobTypes(filters),
+    countJobListings(filters),
+    getTopLocationsFromDb(filters),
+  ]);
+
+  return {
+    sources: mergeSourceFacetsWithSelection(mergeFacets(facets, []), filters.sourceIds),
+    types,
+    totalMatching,
+    locationSuggestions,
+  };
+}
+
 export async function getJobsForApp(
   filters: JobListFilters,
   limit: number,
   offset = 0,
-  options?: { forceLive?: boolean }
+  options?: GetJobsOptions
 ) {
-  const forceLive = options?.forceLive ?? false;
+  const refresh = options?.refresh ?? options?.forceLive ?? false;
+  const includeMeta = options?.includeMeta ?? true;
 
-  if (!forceLive) {
+  if (!refresh) {
     try {
       if (await hasAnyJobListings()) {
-        const liveLogos = primeLiveLogoCache();
+        const jobs = await searchJobListings(filters, limit, offset);
+        const enrichedJobs = await enrichJobsWithLogos(jobs);
 
-        const [jobs, facets, types, totalMatching, locationSuggestions] = await Promise.all([
-          searchJobListings(filters, limit, offset),
-          getSourceFacetsFromDb(filters),
-          getDistinctJobTypes(filters),
-          countJobListings(filters),
-          getTopLocationsFromDb(filters),
-        ]);
+        let sources: SourceFacet[] = [];
+        let types: string[] = [];
+        let locationSuggestions: string[] = [];
+        let totalMatching = enrichedJobs.length;
+        let hasMore = enrichedJobs.length >= limit;
 
-        const enrichedJobs = await enrichJobsWithLogos(jobs, { liveCacheReady: liveLogos });
-
-        const sources = mergeSourceFacetsWithSelection(
-          mergeFacets(facets, []),
-          filters.sourceIds
-        );
+        if (includeMeta) {
+          const meta = await getJobsFilterMeta(filters);
+          sources = meta.sources;
+          types = meta.types;
+          locationSuggestions = meta.locationSuggestions;
+          totalMatching = meta.totalMatching;
+          hasMore = offset + enrichedJobs.length < totalMatching;
+        }
 
         return {
           jobs: enrichedJobs,
           stats: statsFromFilteredJobs(enrichedJobs),
           totalMatching,
-          hasMore: offset + enrichedJobs.length < totalMatching,
+          hasMore,
           offset,
           sources,
           types,
@@ -117,8 +144,11 @@ export async function getJobsForApp(
     filters.search.trim().length > 0 ||
     filters.type !== '' ||
     filters.location !== '';
-  const livePoolSize =
-    filters.sourceIds.length > 0 || hasNonSourceFilters ? 400 : 250;
+  const livePoolSize = refresh
+    ? Math.min(150, Math.max(limit * 4, 60))
+    : filters.sourceIds.length > 0 || hasNonSourceFilters
+      ? 400
+      : 250;
   const { jobs: livePool, providerErrors } = await fetchLiveJobs(livePoolSize);
   const facetBase = applyJobFilters(livePool, { ...filters, sourceIds: [] });
   const sources = mergeSourceFacetsWithSelection(
@@ -126,13 +156,58 @@ export async function getJobsForApp(
     filters.sourceIds
   );
   const filtered = applyJobFilters(livePool, filters);
-  const mixed =
-    filters.sourceIds.length === 0 && !filters.search.trim()
+  const mixed = refresh
+    ? sortJobsByRecency(filtered)
+    : filters.sourceIds.length === 0 && !filters.search.trim()
       ? interleaveJobsBySource(filtered)
-      : filtered;
+      : sortJobsByRecency(filtered);
   const totalMatching = mixed.length;
   const page = mixed.slice(offset, offset + limit);
-  const jobs = await enrichJobsWithLogos(page);
+  let jobs = await enrichJobsWithLogos(page, { allowLiveCache: refresh });
+
+  if (refresh && jobs.length === 0) {
+    try {
+      if (await hasAnyJobListings()) {
+        const dbJobs = await searchJobListings(filters, limit, offset);
+        jobs = await enrichJobsWithLogos(dbJobs);
+        let dbSources: SourceFacet[] = sources;
+        let dbTypes: string[] = [];
+        let dbLocations: string[] = [];
+        let dbTotal = jobs.length;
+        let dbHasMore = jobs.length >= limit;
+
+        if (includeMeta) {
+          const meta = await getJobsFilterMeta(filters);
+          dbSources = meta.sources;
+          dbTypes = meta.types;
+          dbLocations = meta.locationSuggestions;
+          dbTotal = meta.totalMatching;
+          dbHasMore = offset + jobs.length < dbTotal;
+        }
+
+        const failedBoards = Object.keys(providerErrors).length;
+        return {
+          jobs,
+          stats: statsFromFilteredJobs(jobs),
+          totalMatching: dbTotal,
+          hasMore: dbHasMore,
+          offset,
+          sources: dbSources,
+          types: dbTypes,
+          locationSuggestions: dbLocations,
+          filters,
+          mode: 'database' as const,
+          providerErrors,
+          message:
+            failedBoards > 0
+              ? 'Live job boards returned nothing (some APIs failed or are rate-limited). Showing saved jobs from your database.'
+              : 'Live job boards returned nothing. Showing saved jobs from your database.',
+        };
+      }
+    } catch (err) {
+      console.error('[getJobsForApp] refresh database fallback:', err);
+    }
+  }
   const types = dedupeStrings(
     facetBase.map((j) => j.type).filter((t): t is string => typeof t === 'string'),
     true
@@ -144,8 +219,8 @@ export async function getJobsForApp(
   let message: string | undefined;
   if (jobs.length === 0) {
     message = 'No jobs match your filters. Try another source or clear filters.';
-  } else if (options?.forceLive) {
-    message = 'Refreshed from live job board APIs.';
+  } else if (refresh) {
+    message = 'Fetched latest jobs from job board APIs (newest first).';
   } else {
     try {
       if (!(await hasAnyJobListings())) {

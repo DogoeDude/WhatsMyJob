@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
+import type { Job } from '@/lib/jobs/types';
 
 export function stripHtml(html: string): string {
   return html
@@ -23,7 +24,11 @@ export function parseJsonStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === 'string');
 }
 
-/** Remove duplicate strings (optional case-insensitive). Keeps first occurrence. */
+/** Newest first — stable refresh ordering (no round-robin flip-flop). */
+export function sortJobsByRecency(jobs: Job[]): Job[] {
+  return [...jobs].sort((a, b) => (b.postedAtMs ?? 0) - (a.postedAtMs ?? 0));
+}
+
 export function dedupeStrings(values: unknown[], caseInsensitive = false): string[] {
   const seen = new Set<string>();
   const out: string[] = [];

@@ -72,9 +72,21 @@ function buildFacetWhere(filters: JobListFilters): Prisma.JobListingWhereInput {
   return buildWhere({ ...filters, sourceIds: [] });
 }
 
+let hasJobsCache: { at: number; value: boolean } | null = null;
+const HAS_JOBS_TTL_MS = 30_000;
+
 export async function hasAnyJobListings(): Promise<boolean> {
+  if (hasJobsCache && Date.now() - hasJobsCache.at < HAS_JOBS_TTL_MS) {
+    return hasJobsCache.value;
+  }
   const row = await prisma.jobListing.findFirst({ select: { id: true } });
-  return row !== null;
+  const value = row !== null;
+  hasJobsCache = { at: Date.now(), value };
+  return value;
+}
+
+export function invalidateHasJobsCache() {
+  hasJobsCache = null;
 }
 
 function rowToListJob(
@@ -107,10 +119,13 @@ async function searchJobListingsMixed(
 
   if (sourceRows.length === 0) return [];
 
-  const perSource = Math.max(6, Math.ceil((limit + offset) / sourceRows.length) + 3);
+  const start = sourceRows.length > 0 ? offset % sourceRows.length : 0;
+  const orderedSources = [...sourceRows.slice(start), ...sourceRows.slice(0, start)];
+
+  const perSource = Math.max(6, Math.ceil((limit + offset) / orderedSources.length) + 3);
 
   const batches = await Promise.all(
-    sourceRows.map(({ sourceId }) =>
+    orderedSources.map(({ sourceId }) =>
       prisma.jobListing.findMany({
         where: buildWhere({ ...filters, sourceIds: [sourceId] }),
         select: listListingSelect,
@@ -141,7 +156,8 @@ async function searchJobListingsMixed(
 }
 
 export async function searchJobListings(filters: JobListFilters, limit = 150, offset = 0) {
-  if (shouldMixSources(filters)) {
+  // Mixed interleave uses many DB round-trips; use chronological list for normal page sizes.
+  if (shouldMixSources(filters) && limit + offset > 80) {
     return searchJobListingsMixed(filters, limit, offset);
   }
 

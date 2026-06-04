@@ -1,8 +1,9 @@
 'use client';
 
-import { MapPin, Clock } from 'lucide-react';
+import { ChevronRight, MapPin, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompanyLogo } from '@/components/company-logo';
+import { JobRecencyBadge } from '@/components/job-recency-badge';
 import type { Job } from '@/lib/jobs/types';
 
 interface JobCardProps {
@@ -21,8 +22,10 @@ export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps)
       onClick={onJobSelect}
       onKeyDown={(e) => e.key === 'Enter' && onJobSelect()}
       className={cn(
-        'group flex w-full cursor-pointer gap-3 text-left transition-colors',
-        compact ? 'px-3 py-3.5 sm:px-4' : 'gap-4 px-4 py-4 sm:px-5',
+        'group flex w-full cursor-pointer gap-3 text-left transition-colors active:bg-muted/60',
+        compact
+          ? 'min-h-[4.25rem] px-3 py-4 sm:px-4 max-lg:touch-manipulation lg:py-3.5'
+          : 'gap-4 px-4 py-4 sm:px-5',
         isSelected
           ? 'bg-primary/5 ring-1 ring-inset ring-primary/25'
           : 'hover:bg-muted/50',
@@ -32,31 +35,44 @@ export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps)
       <CompanyLogo company={job.company} logoUrl={job.logoUrl} size={compact ? 'sm' : 'md'} />
 
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <h3 className="font-medium text-foreground group-hover:underline">
-            {job.title}
-          </h3>
-          <span className="text-xs text-muted-foreground">{job.type}</span>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5 gap-y-0.5">
+              <h3 className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground group-hover:underline lg:text-base">
+                {job.title}
+              </h3>
+              <JobRecencyBadge postedAtMs={job.postedAtMs} />
+            </div>
+            <p className="mt-1 truncate text-sm text-muted-foreground">{job.company}</p>
+          </div>
+          {compact && (
+            <ChevronRight
+              className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground/70 lg:hidden"
+              aria-hidden
+            />
+          )}
         </div>
-        <p className="mt-0.5 text-sm text-muted-foreground">{job.company}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="mt-2 flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3 w-3 shrink-0" aria-hidden />
-            {job.location}
+            <span className="truncate">{job.location}</span>
           </span>
-          {job.salary && job.salary !== 'Not specified' && (
-            <span>{job.salary}</span>
-          )}
-          {job.postedDate && (
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3 w-3 shrink-0" aria-hidden />
-              {job.postedDate}
-            </span>
-          )}
-          {job.source && <span>· {job.source}</span>}
+          <span className="hidden items-center gap-2 sm:inline-flex">
+            {job.type && <span>{job.type}</span>}
+            {job.salary && job.salary !== 'Not specified' && <span>{job.salary}</span>}
+            {job.postedDate && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="h-3 w-3 shrink-0" aria-hidden />
+                {job.postedDate}
+              </span>
+            )}
+          </span>
+          <span className="text-muted-foreground/80 sm:hidden">
+            {[job.type, job.postedDate].filter(Boolean).join(' · ')}
+          </span>
         </div>
         {job.tags && job.tags.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="mt-2 hidden flex-wrap gap-1 sm:flex">
             {job.tags.slice(0, 3).map((tag, index) => (
               <span
                 key={`${job.id}-tag-${index}`}

@@ -1,3 +1,6 @@
+/** Jobs shown to signed-out visitors before sign-in is required for more. */
+export const GUEST_JOB_LIMIT = 10;
+
 /** Jobs per page when browsing categories or loading more. */
 export const PAGE_SIZE = 40;
 

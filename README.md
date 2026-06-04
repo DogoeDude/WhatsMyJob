@@ -148,7 +148,7 @@ Philippines-focused search relies mainly on **JSearch** (`country=ph`). Adzuna h
 | `category` | `?category=it` | Category id |
 | `limit` | `?limit=50` | Page size |
 | `offset` | `?offset=50` | Pagination |
-| `refresh` | `?refresh=1` | Prefer live provider fetch |
+| `refresh` | `?refresh=1` | Fetch latest jobs from live APIs (newest first, stable order) |
 
 Other routes: `GET /api/jobs/[id]`, `POST /api/jobs/sync` (admin), `GET /api/jobs/stats`, etc.
 
@@ -197,7 +197,7 @@ scripts/                # make-admin, test-providers
 | **Failed to load jobs** / Prisma errors | Stop dev server → `npm run db:generate` → restart |
 | **Only one source on page 1** | Use **Refresh** or run admin sync; mixed ordering is applied in the service layer |
 | **Letter avatars instead of logos** | Logos use direct URLs + favicon fallback; some boards block server-side image fetch |
-| **Stale listings** | Admin **Sync all sources** or jobs UI **Refresh** (`refresh=1`) |
+| **Stale listings** | Admin **Sync all sources**; jobs UI **Refresh** reloads from the database |
 | **Push rejected on GitHub** | `git pull --rebase origin main` then `git push` |
 
 ---

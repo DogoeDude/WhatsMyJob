@@ -23,6 +23,7 @@ function normalizedToJob(
     requirements: input.requirements ?? [],
     benefits: input.benefits ?? [],
     postedDate: formatPostedDate(input.postedAt),
+    postedAtMs: input.postedAt?.getTime() ?? 0,
     applyUrl: input.applyUrl,
     sourceId,
     source: sourceName,
