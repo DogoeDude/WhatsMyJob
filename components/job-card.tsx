@@ -1,77 +1,74 @@
 'use client';
 
-import { MapPin, DollarSign, Briefcase, Heart } from 'lucide-react';
-import { useState } from 'react';
+import { MapPin, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { CompanyLogo } from '@/components/company-logo';
+import type { Job } from '@/lib/jobs/types';
 
 interface JobCardProps {
-  job: {
-    id: string;
-    title: string;
-    company: string;
-    location: string;
-    salary: string;
-    type: string;
-    logo?: string;
-    tags?: string[];
-  };
+  job: Job;
   onJobSelect: () => void;
+  isSelected?: boolean;
+  compact?: boolean;
 }
 
-export function JobCard({ job, onJobSelect }: JobCardProps) {
-  const [isSaved, setIsSaved] = useState(false);
-
+export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps) {
   return (
-    <div
-      className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all cursor-pointer hover:border-accent/50"
+    <article
+      role="button"
+      tabIndex={0}
+      aria-current={isSelected ? 'true' : undefined}
       onClick={onJobSelect}
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-foreground mb-1">{job.title}</h3>
-          <p className="text-sm text-muted-foreground">{job.company}</p>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsSaved(!isSaved);
-          }}
-          className="p-2 hover:bg-muted rounded-lg transition-colors"
-        >
-          <Heart
-            className={`h-5 w-5 ${
-              isSaved ? 'fill-red-500 text-red-500' : 'text-muted-foreground'
-            }`}
-          />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4 text-accent" />
-          {job.location}
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <DollarSign className="h-4 w-4 text-accent" />
-          {job.salary}
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Briefcase className="h-4 w-4 text-accent" />
-          {job.type}
-        </div>
-      </div>
-
-      {job.tags && job.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {job.tags.map((tag, idx) => (
-            <span
-              key={idx}
-              className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+      onKeyDown={(e) => e.key === 'Enter' && onJobSelect()}
+      className={cn(
+        'group flex w-full cursor-pointer gap-3 text-left transition-colors',
+        compact ? 'px-3 py-3.5 sm:px-4' : 'gap-4 px-4 py-4 sm:px-5',
+        isSelected
+          ? 'bg-primary/5 ring-1 ring-inset ring-primary/25'
+          : 'hover:bg-muted/50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
       )}
-    </div>
+    >
+      <CompanyLogo company={job.company} logoUrl={job.logoUrl} size={compact ? 'sm' : 'md'} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <h3 className="font-medium text-foreground group-hover:underline">
+            {job.title}
+          </h3>
+          <span className="text-xs text-muted-foreground">{job.type}</span>
+        </div>
+        <p className="mt-0.5 text-sm text-muted-foreground">{job.company}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+            {job.location}
+          </span>
+          {job.salary && job.salary !== 'Not specified' && (
+            <span>{job.salary}</span>
+          )}
+          {job.postedDate && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3 w-3 shrink-0" aria-hidden />
+              {job.postedDate}
+            </span>
+          )}
+          {job.source && <span>· {job.source}</span>}
+        </div>
+        {job.tags && job.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {job.tags.slice(0, 3).map((tag, index) => (
+              <span
+                key={`${job.id}-tag-${index}`}
+                className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+    </article>
   );
 }

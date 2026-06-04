@@ -1,98 +1,68 @@
 'use client';
 
-import Link from 'next/link';
-import { Github, Twitter, Linkedin } from 'lucide-react';
+import { pageContainerClass } from '@/lib/ui-classes';
+import { JOB_SOURCES_CATALOG } from '@/lib/jobs/sources-catalog';
+
+const DEVELOPER_LINKEDIN = 'https://www.linkedin.com/in/reggie-hermosisima-0937a8275';
+const DEVELOPER_GITHUB = 'https://github.com/DogoeDude';
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
+  const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-card mt-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Company Info */}
-          <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">JobFlow</h3>
-            <p className="text-muted-foreground text-sm">
-              Discover your next opportunity with our job aggregator platform.
+    <footer className="mt-auto border-t border-border bg-muted/30">
+      <div className={`${pageContainerClass} py-8`}>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-sm">
+            <p className="font-medium text-foreground">WhatsMyJob</p>
+            <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+              Aggregates listings from public job board APIs. Job content belongs to each
+              provider and employer.
             </p>
           </div>
-
-          {/* Product Links */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Product</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-                  Browse Jobs
-                </Link>
-              </li>
-              <li>
-                <Link href="/analytics" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-                  Market Insights
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-                  Saved Jobs
-                </Link>
-              </li>
+            <p className="text-sm font-medium text-foreground">Sources</p>
+            <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              {JOB_SOURCES_CATALOG.slice(0, 6).map((source) => (
+                <li key={source.id}>
+                  <a
+                    href={source.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    {source.name}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
-
-          {/* Company Links */}
-          <div>
-            <h4 className="font-semibold text-foreground mb-4">Company</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-                  Contact
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Social Links */}
-          <div>
-            <h4 className="font-semibold text-foreground mb-4">Follow Us</h4>
-            <div className="flex gap-4">
-              <a href="#" className="text-muted-foreground hover:text-accent transition-colors">
-                <Twitter className="h-5 w-5" />
+          <div className="text-sm">
+            <p className="font-medium text-foreground">Built by</p>
+            <p className="mt-1 text-muted-foreground">
+              <a
+                href={DEVELOPER_LINKEDIN}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline-offset-2 hover:underline"
+              >
+                Reggie Hermosisima
               </a>
-              <a href="#" className="text-muted-foreground hover:text-accent transition-colors">
-                <Linkedin className="h-5 w-5" />
+              {' · '}
+              <a
+                href={DEVELOPER_GITHUB}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline-offset-2 hover:underline"
+              >
+                GitHub
               </a>
-              <a href="#" className="text-muted-foreground hover:text-accent transition-colors">
-                <Github className="h-5 w-5" />
-              </a>
-            </div>
+            </p>
           </div>
         </div>
-
-        {/* Bottom */}
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-muted-foreground text-sm">
-            © {currentYear} JobFlow. All rights reserved.
-          </p>
-          <div className="flex gap-6 mt-4 md:mt-0">
-            <Link href="#" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-              Privacy Policy
-            </Link>
-            <Link href="#" className="text-muted-foreground hover:text-accent text-sm transition-colors">
-              Terms of Service
-            </Link>
-          </div>
-        </div>
+        <p className="mt-8 text-xs text-muted-foreground">
+          © {year} WhatsMyJob
+        </p>
       </div>
     </footer>
   );
