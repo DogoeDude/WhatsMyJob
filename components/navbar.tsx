@@ -2,178 +2,445 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Briefcase, LogOut, Menu, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { pageContainerClass } from '@/lib/ui-classes';
+import { Briefcase, LogOut, Menu, User } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  SITE_NAV_LINKS,
+  filterNavLinks,
+  isNavActive,
+  type NavLinkDef,
+} from '@/lib/nav-links';
+import {
+  mobileBottomNavSpacerClass,
+  siteHeaderInnerClass,
+} from '@/lib/ui-classes';
 import { cn } from '@/lib/utils';
+import { useAppLoading } from '@/components/app-loading-provider';
 import { authClient } from '@/lib/auth-client';
 import { useAppSession } from '@/lib/use-app-session';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
-const allNavLinks = [
-  { href: '/', label: 'Jobs', requiresAuth: false, requiresAdmin: false },
-  { href: '/analytics', label: 'Applications', requiresAuth: true, requiresAdmin: false },
-  { href: '/admin', label: 'Admin', requiresAuth: true, requiresAdmin: true },
-] as const;
+function getInitials(name?: string | null, email?: string | null): string {
+  const source = (name?.trim() || email?.split('@')[0] || '?').trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+  }
+  return source.slice(0, 2).toUpperCase();
+}
+
+function Brand() {
+  return (
+    <Link
+      href="/"
+      prefetch
+      className="group flex min-w-0 items-center gap-2.5 rounded-xl py-1 pr-1 transition-opacity hover:opacity-90 sm:gap-3"
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 transition-transform group-hover:scale-[1.02] sm:h-11 sm:w-11">
+        <Briefcase className="h-5 w-5 sm:h-[1.35rem] sm:w-[1.35rem]" aria-hidden />
+      </span>
+      <span className="flex min-w-0 flex-col leading-tight">
+        <span className="truncate text-sm font-semibold tracking-tight text-foreground sm:text-base lg:text-lg">
+          WhatsMyJob
+        </span>
+        <span className="hidden text-[11px] font-medium text-muted-foreground min-[400px]:block sm:text-xs">
+          Find your next role
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+/** Jobs & Applications — centered in the header on tablet/desktop. */
+function HeaderCenterNav({
+  links,
+  pathname,
+}: {
+  links: NavLinkDef[];
+  pathname: string;
+}) {
+  if (links.length === 0) return null;
+
+  return (
+    <nav
+      className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-2xl bg-muted/50 p-1 ring-1 ring-border/60 sm:flex"
+      aria-label="Main navigation"
+    >
+      {links.map((link) => {
+        const Icon = link.icon;
+        const active = isNavActive(pathname, link.href);
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            prefetch
+            className={cn(
+              'inline-flex min-h-10 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
+              active
+                ? 'bg-background text-foreground shadow-sm ring-1 ring-border/70'
+                : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0" aria-hidden />
+            {link.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function MobileBottomNav({
+  links,
+  pathname,
+}: {
+  links: NavLinkDef[];
+  pathname: string;
+}) {
+  const primary = links.filter((l) => l.primary !== false);
+  if (primary.length === 0) return null;
+
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 lg:hidden dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.45)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      aria-label="Mobile navigation"
+    >
+      <div className="mx-auto grid h-[4.25rem] max-w-lg grid-cols-3 items-stretch px-2">
+        {primary.map((link) => {
+          const Icon = link.icon;
+          const active = isNavActive(pathname, link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              prefetch
+              className={cn(
+                'flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl px-2 transition-colors active:scale-[0.98]',
+                active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <span
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                  active && 'bg-primary/10'
+                )}
+              >
+                <Icon className={cn('h-5 w-5', active && 'stroke-[2.25]')} aria-hidden />
+              </span>
+              <span className={cn('text-[11px] font-semibold', active && 'text-foreground')}>
+                {link.shortLabel ?? link.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+function UserAccountMenu({
+  links,
+  pathname,
+  displayName,
+  email,
+  isAdmin,
+  onSignOut,
+  signingOut,
+}: {
+  links: NavLinkDef[];
+  pathname: string;
+  displayName: string;
+  email: string;
+  isAdmin: boolean;
+  onSignOut: () => void;
+  signingOut: boolean;
+}) {
+  const initials = getInitials(displayName, email);
+  const secondaryLinks = links.filter((l) => l.primary === false || l.requiresAdmin);
+  const profileActive = isNavActive(pathname, '/profile');
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'inline-flex min-h-11 max-w-[min(100%,14rem)] items-center gap-2 rounded-xl border border-border/80 bg-background/80 py-1 pl-1 pr-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 sm:max-w-[16rem] sm:gap-2.5 sm:pr-3.5',
+            profileActive && 'border-primary/30 bg-primary/5'
+          )}
+          aria-label="Account menu"
+        >
+          <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
+            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+            {displayName}
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5">
+        <DropdownMenuLabel className="font-normal">
+          <p className="truncate text-sm font-medium">{displayName}</p>
+          <p className="truncate text-xs font-normal text-muted-foreground">{email}</p>
+          {isAdmin && (
+            <p className="mt-1 text-xs font-medium text-primary">Administrator</p>
+          )}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/profile" prefetch className="cursor-pointer gap-2">
+            <User className="h-4 w-4" />
+            View profile
+            {profileActive && (
+              <span className="ml-auto text-xs text-muted-foreground">Current</span>
+            )}
+          </Link>
+        </DropdownMenuItem>
+        {secondaryLinks.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            {secondaryLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <DropdownMenuItem key={link.href} asChild>
+                  <Link href={link.href} prefetch className="cursor-pointer gap-2">
+                    <Icon className="h-4 w-4" />
+                    {link.label}
+                    {isNavActive(pathname, link.href) && (
+                      <span className="ml-auto text-xs text-muted-foreground">Current</span>
+                    )}
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
+          </>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          className="cursor-pointer gap-2"
+          disabled={signingOut}
+          onSelect={(e) => {
+            e.preventDefault();
+            onSignOut();
+          }}
+        >
+          {signingOut ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Signing out…
+            </>
+          ) : (
+            <>
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </>
+          )}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function GuestAuthActions({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        asChild
+        variant="ghost"
+        size="default"
+        className="hidden h-11 rounded-xl px-4 text-sm font-medium sm:inline-flex"
+      >
+        <Link href="/register" prefetch onClick={onNavigate}>
+          Register
+        </Link>
+      </Button>
+      <Button asChild size="default" className="h-11 rounded-xl px-4 text-sm font-semibold shadow-sm">
+        <Link href="/login" prefetch onClick={onNavigate}>
+          Sign in
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+function MobileGuestSheet({
+  open,
+  onOpenChange,
+  links,
+  pathname,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  links: NavLinkDef[];
+  pathname: string;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-[min(100vw-2rem,22rem)] rounded-l-2xl p-0">
+        <SheetHeader className="border-b border-border px-5 py-5 text-left">
+          <SheetTitle className="text-lg">Menu</SheetTitle>
+        </SheetHeader>
+        <nav className="flex flex-col gap-1 p-3" aria-label="Mobile menu">
+          {links.map((link) => {
+            const Icon = link.icon;
+            const active = isNavActive(pathname, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                prefetch
+                onClick={() => onOpenChange(false)}
+                className={cn(
+                  'flex min-h-12 items-center gap-3 rounded-xl px-4 text-base font-medium transition-colors',
+                  active
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-foreground hover:bg-muted'
+                )}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="mt-auto grid gap-2 border-t border-border p-4">
+          <Button asChild size="lg" className="h-12 rounded-xl">
+            <Link href="/login" prefetch onClick={() => onOpenChange(false)}>
+              Sign in
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-12 rounded-xl">
+            <Link href="/register" prefetch onClick={() => onOpenChange(false)}>
+              Create account
+            </Link>
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [guestSheetOpen, setGuestSheetOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const { startLoading, stopLoading } = useAppLoading();
   const { data: session, isPending, refresh: refreshSession } = useAppSession();
 
   const role = (session?.user as { role?: string } | undefined)?.role ?? 'user';
   const isAdmin = role === 'admin';
 
-  const navLinks = allNavLinks.filter((link) => {
-    if (!link.requiresAuth) return true;
-    if (!session) return false;
-    if (link.requiresAdmin) return isAdmin;
-    return true;
-  });
+  const navLinks = useMemo(
+    () => filterNavLinks(SITE_NAV_LINKS, { session: !!session, isAdmin }),
+    [session, isAdmin]
+  );
 
   useEffect(() => {
-    setMobileMenuOpen(false);
+    setGuestSheetOpen(false);
   }, [pathname]);
 
-  useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [mobileMenuOpen]);
-
   const handleSignOut = async () => {
-    await authClient.signOut();
-    await refreshSession();
-    setMobileMenuOpen(false);
-    router.push('/');
-    router.refresh();
+    if (signingOut) return;
+    setSigningOut(true);
+    startLoading('Signing out…');
+    try {
+      await authClient.signOut();
+      await refreshSession();
+      router.push('/');
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+      stopLoading();
+    }
   };
 
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href);
+  const displayName = session?.user.name || session?.user.email?.split('@')[0] || 'Account';
+  const email = session?.user.email ?? '';
+
+  const centerNavLinks = navLinks.filter(
+    (l) => l.href === '/' || l.href === '/analytics'
+  );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-      <div className={pageContainerClass}>
-        <div className="flex h-14 items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 font-semibold text-foreground">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Briefcase className="h-5 w-5" aria-hidden />
-            </span>
-            <span>WhatsMyJob</span>
-          </Link>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-background/90 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
+        <div className={cn(siteHeaderInnerClass, 'relative')}>
+          <Brand />
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
-            {navLinks.map((link) => {
-              const active = isActive(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex md:items-center md:gap-3">
-              {isPending ? (
-                <div className="h-9 w-20 animate-pulse rounded-md bg-muted" />
-              ) : session ? (
-                <>
-                  <span className="max-w-[140px] truncate text-sm text-muted-foreground">
-                    {session.user.name || session.user.email}
-                  </span>
-                  <Button type="button" variant="ghost" size="sm" onClick={handleSignOut}>
-                    <LogOut className="h-4 w-4" />
-                    Sign out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href="/register">Register</Link>
-                  </Button>
-                  <Button asChild size="sm">
-                    <Link href="/login">Sign in</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={mobileMenuOpen}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          'border-t border-border bg-background md:hidden',
-          mobileMenuOpen ? 'block' : 'hidden'
-        )}
-      >
-        <div className={`${pageContainerClass} space-y-1 py-3`}>
           {session && (
-            <p className="px-3 py-2 text-sm text-muted-foreground">
-              {session.user.email}
-              {isAdmin ? ' · Admin' : ''}
-            </p>
+            <HeaderCenterNav links={centerNavLinks} pathname={pathname} />
           )}
-          <nav className="space-y-0.5" aria-label="Mobile">
-            {navLinks.map((link) => {
-              const active = isActive(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'block rounded-md px-3 py-2.5 text-sm font-medium',
-                    active ? 'bg-muted text-foreground' : 'text-muted-foreground'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="border-t border-border pt-2">
-            {session ? (
-              <Button variant="outline" size="sm" className="w-full" onClick={handleSignOut}>
-                Sign out
-              </Button>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <Button asChild size="sm" className="w-full">
-                  <Link href="/login">Sign in</Link>
-                </Button>
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link href="/register">Register</Link>
-                </Button>
+
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+            {isPending ? (
+              <div
+                className="flex h-11 items-center gap-2 rounded-xl border border-border/80 bg-muted/30 px-3 text-sm text-muted-foreground"
+                aria-busy="true"
+              >
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                Loading…
               </div>
+            ) : session ? (
+              <UserAccountMenu
+                links={navLinks}
+                pathname={pathname}
+                displayName={displayName}
+                email={email}
+                isAdmin={isAdmin}
+                onSignOut={handleSignOut}
+                signingOut={signingOut}
+              />
+            ) : (
+              <>
+                <GuestAuthActions />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 rounded-xl sm:hidden"
+                  onClick={() => setGuestSheetOpen(true)}
+                  aria-label="Open menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+                <MobileGuestSheet
+                  open={guestSheetOpen}
+                  onOpenChange={setGuestSheetOpen}
+                  links={navLinks}
+                  pathname={pathname}
+                />
+              </>
             )}
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {session && (
+        <>
+          <MobileBottomNav links={navLinks} pathname={pathname} />
+          <div className={mobileBottomNavSpacerClass} aria-hidden />
+        </>
+      )}
+    </>
   );
 }

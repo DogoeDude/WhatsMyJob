@@ -52,16 +52,8 @@ function formatProviderErrors(errors: Record<string, string> | undefined): strin
   return `${failed.length} job board${failed.length === 1 ? '' : 's'} could not be reached.`;
 }
 
-export type JobsHomeInitialData = {
-  jobs: Job[];
-  totalMatching: number;
-  hasMore: boolean;
-  sources: SourceFacet[];
-  types: string[];
-  locationSuggestions: string[];
-  mode?: 'database' | 'live';
-  message?: string;
-};
+export type { JobsHomeInitialData } from '@/lib/jobs/home-types';
+import type { JobsHomeInitialData } from '@/lib/jobs/home-types';
 
 const defaultFilters: JobFilterState = {
   sourceIds: [],
@@ -121,6 +113,7 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
   const [infoMessage, setInfoMessage] = useState<string | null>(initialData?.message ?? null);
   /** Skip one automatic DB fetch when SSR already hydrated the list. */
   const skipInitialBrowseRef = useRef(!!initialData);
+  const skipInitialMetaRef = useRef(initialData?.metaLoaded ?? false);
   /** After a manual refresh, block browse effect from replacing live results with DB. */
   const liveListLockRef = useRef(false);
   const fetchJobsRef = useRef<
@@ -311,7 +304,33 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
 
   useEffect(() => {
     if (sessionPending) return;
-    void fetchJobMeta(searchQuery, debouncedFilters, category);
+
+    if (skipInitialMetaRef.current) {
+      const isDefault =
+        searchQuery === '' &&
+        category === ALL_CATEGORY_ID &&
+        filtersEqual(debouncedFilters, defaultFilters);
+      if (isDefault) {
+        skipInitialMetaRef.current = false;
+        return;
+      }
+      skipInitialMetaRef.current = false;
+    }
+
+    const schedule =
+      typeof requestIdleCallback !== 'undefined'
+        ? (fn: () => void) => {
+            const id = requestIdleCallback(fn, { timeout: 1500 });
+            return () => cancelIdleCallback(id);
+          }
+        : (fn: () => void) => {
+            const id = window.setTimeout(fn, 150);
+            return () => clearTimeout(id);
+          };
+
+    return schedule(() => {
+      void fetchJobMeta(searchQuery, debouncedFilters, category);
+    });
   }, [searchQuery, debouncedFilters, category, sessionPending, fetchJobMeta]);
 
   const sessionUserId = session?.user?.id ?? null;

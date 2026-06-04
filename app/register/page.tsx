@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { AuthShell } from '@/components/auth-shell';
 import { inputSurfaceClass } from '@/lib/ui-classes';
 import { authClient } from '@/lib/auth-client';
+import { useAppLoading } from '@/components/app-loading-provider';
+import { LoadingButtonLabel } from '@/components/loading-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +20,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { startLoading, stopLoading, showUntilNavigate } = useAppLoading();
 
   const passwordsMismatch =
     confirmPassword.length > 0 && password !== confirmPassword;
@@ -29,6 +32,7 @@ export default function RegisterPage() {
 
     setError(null);
     setIsLoading(true);
+    startLoading('Creating your account…');
 
     try {
       const { error: signUpError } = await authClient.signUp.email({
@@ -39,13 +43,17 @@ export default function RegisterPage() {
 
       if (signUpError) {
         setError(signUpError.message ?? 'Could not create account.');
+        stopLoading();
         return;
       }
 
+      stopLoading();
+      showUntilNavigate('Account created — redirecting…');
       router.push('/login');
       router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
+      stopLoading();
     } finally {
       setIsLoading(false);
     }
@@ -139,10 +147,12 @@ export default function RegisterPage() {
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full gap-2"
           disabled={passwordsMismatch || isLoading}
         >
-          {isLoading ? 'Creating account…' : 'Create account'}
+          <LoadingButtonLabel loading={isLoading} loadingText="Creating account…">
+            Create account
+          </LoadingButtonLabel>
         </Button>
       </form>
     </AuthShell>

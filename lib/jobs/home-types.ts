@@ -1,0 +1,15 @@
+import type { SourceFacet } from '@/lib/jobs/filters';
+import type { Job } from '@/lib/jobs/types';
+
+export type JobsHomeInitialData = {
+  jobs: Job[];
+  totalMatching: number;
+  hasMore: boolean;
+  sources: SourceFacet[];
+  types: string[];
+  locationSuggestions: string[];
+  mode?: 'database' | 'live';
+  message?: string;
+  /** SSR already loaded sidebar facets — skip immediate client refetch. */
+  metaLoaded?: boolean;
+};

@@ -1,14 +1,16 @@
-import { requireAuth } from '@/lib/auth-guards';
 import { ApplicationsDashboard } from '@/components/applications-dashboard';
 import { PageContent, PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
+import { getCachedSession } from '@/lib/auth-session';
 import {
   getApplicationStats,
   listUserApplications,
 } from '@/lib/applications/query';
+import { redirect } from 'next/navigation';
 
 export default async function AnalyticsPage() {
-  const session = await requireAuth('/analytics');
+  const session = await getCachedSession();
+  if (!session) redirect('/login?callbackUrl=%2Fanalytics');
   const userId = session.user.id;
 
   try {

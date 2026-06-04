@@ -6,6 +6,14 @@ export const searchInputClass =
 
 export const pageContainerClass = 'mx-auto w-full max-w-5xl px-4 sm:px-6';
 
+/** Full-width header: brand flush left, account flush right (viewport edges + padding). */
+export const siteHeaderInnerClass =
+  'flex h-14 w-full items-center justify-between gap-4 px-4 sm:h-16 sm:px-6 lg:h-[4.5rem] lg:px-8';
+
+/** Height reserved for fixed mobile bottom navigation + safe area. */
+export const mobileBottomNavSpacerClass =
+  'pointer-events-none h-[calc(4.25rem+env(safe-area-inset-bottom,0px))] shrink-0 lg:hidden';
+
 export const selectSurfaceClass =
   'h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30';
 

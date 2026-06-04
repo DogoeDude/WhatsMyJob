@@ -1,33 +1,7 @@
-import { headers } from 'next/headers';
-import { JobsHome, type JobsHomeInitialData } from '@/components/jobs-home';
-import { auth } from '@/lib/auth';
-import { browseJobLimit } from '@/lib/jobs/browse-limit';
-import { DEFAULT_JOB_LIST_FILTERS } from '@/lib/jobs/default-filters';
-import { getJobsForApp } from '@/lib/jobs/service';
+import { JobsHome } from '@/components/jobs-home';
+import { loadHomeInitialData } from '@/lib/home-initial-data';
 
 export default async function Home() {
-  let initialData: JobsHomeInitialData | undefined;
-
-  const session = await auth.api.getSession({ headers: await headers() });
-  const limit = browseJobLimit(!!session);
-
-  try {
-    const result = await getJobsForApp(DEFAULT_JOB_LIST_FILTERS, limit, 0, {
-      includeMeta: false,
-    });
-    initialData = {
-      jobs: result.jobs,
-      totalMatching: result.totalMatching,
-      hasMore: result.hasMore,
-      sources: [],
-      types: [],
-      locationSuggestions: [],
-      mode: result.mode,
-      message: result.message,
-    };
-  } catch (err) {
-    console.error('[Home] initial jobs load', err);
-  }
-
+  const initialData = await loadHomeInitialData();
   return <JobsHome initialData={initialData} />;
 }

@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
 import { AuthShell } from '@/components/auth-shell';
+import { LoadingSpinner } from '@/components/loading-indicator';
 import { inputSurfaceClass } from '@/lib/ui-classes';
 import { getPostLoginPath } from '@/lib/auth-redirect';
 import { authClient } from '@/lib/auth-client';
 import { useAppSession } from '@/lib/use-app-session';
+import { useAppLoading } from '@/components/app-loading-provider';
+import { LoadingButtonLabel } from '@/components/loading-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +23,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { refresh: refreshSession } = useAppSession();
+  const { startLoading, stopLoading, showUntilNavigate } = useAppLoading();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +31,7 @@ function LoginForm() {
 
     setError(null);
     setIsLoading(true);
+    startLoading('Signing in…');
 
     try {
       const { error: signInError } = await authClient.signIn.email({
@@ -36,6 +41,7 @@ function LoginForm() {
 
       if (signInError) {
         setError(signInError.message ?? 'Invalid email or password.');
+        stopLoading();
         return;
       }
 
@@ -44,10 +50,13 @@ function LoginForm() {
       const destination = getPostLoginPath(userRole, searchParams.get('callbackUrl'));
 
       await refreshSession();
+      stopLoading();
+      showUntilNavigate('Signing you in…');
       router.push(destination);
       router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
+      stopLoading();
     } finally {
       setIsLoading(false);
     }
@@ -104,8 +113,10 @@ function LoginForm() {
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Signing in…' : 'Sign in'}
+        <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+          <LoadingButtonLabel loading={isLoading} loadingText="Signing in…">
+            Sign in
+          </LoadingButtonLabel>
         </Button>
       </form>
     </AuthShell>
@@ -114,7 +125,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-muted/30" />}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-muted/30">
+          <LoadingSpinner label="Loading sign in…" />
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
