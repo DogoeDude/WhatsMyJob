@@ -19,9 +19,39 @@ model User {
   sessions      Session[]
   accounts      Account[]
   applications  JobApplication[]
+  profile       UserProfile?
 
   @@unique([email])
   @@map("user")
+}
+
+/// Job seeker details — preferences, links, and how employers can reach you.
+model UserProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline         String?
+  phone            String?
+  location         String?
+  bio              String?  @db.Text
+  linkedInUrl      String?
+  portfolioUrl     String?
+  githubUrl        String?
+  contactEmail     String?
+  coverLetter      String?  @db.Text
+  resumeFileName   String?
+  resumeMimeType   String?
+  resumeSizeBytes  Int?
+  resumeUpdatedAt  DateTime?
+  preferredWork    String   @default("any")
+  preferredTypes   Json     @default("[]")
+  skills           Json     @default("[]")
+  openToWork       Boolean  @default(true)
+  yearsExperience  Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("user_profile")
 }
 
 model Session {

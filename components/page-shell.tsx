@@ -1,5 +1,9 @@
+import dynamic from 'next/dynamic';
 import { Footer } from '@/components/footer';
-import { Navbar } from '@/components/navbar';
+
+const Navbar = dynamic(() => import('@/components/navbar').then((m) => m.Navbar), {
+  ssr: true,
+});
 import { pageContainerClass } from '@/lib/ui-classes';
 import { cn } from '@/lib/utils';
 

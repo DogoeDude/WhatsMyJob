@@ -7,6 +7,9 @@ out/
 .env
 .env*.local
 
+# User uploads (resumes)
+/data/resumes/
+
 # OS & editor
 .DS_Store
 *.pem

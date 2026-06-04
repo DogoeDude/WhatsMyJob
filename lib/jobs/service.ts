@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import {
   applyJobFilters,
   buildSourceFacets,
@@ -74,7 +75,7 @@ export type GetJobsOptions = {
   includeMeta?: boolean;
 };
 
-export async function getJobsFilterMeta(filters: JobListFilters) {
+export const getJobsFilterMeta = cache(async function getJobsFilterMeta(filters: JobListFilters) {
   const [facets, types, totalMatching, locationSuggestions] = await Promise.all([
     getSourceFacetsFromDb(filters),
     getDistinctJobTypes(filters),
@@ -88,7 +89,7 @@ export async function getJobsFilterMeta(filters: JobListFilters) {
     totalMatching,
     locationSuggestions,
   };
-}
+});
 
 export async function getJobsForApp(
   filters: JobListFilters,

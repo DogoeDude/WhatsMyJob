@@ -1,12 +1,9 @@
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
 import { getAuthenticatedHomePath } from '@/lib/auth-redirect';
+import { getCachedSession } from '@/lib/auth-session';
 
 export async function requireAuth(callbackPath: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getCachedSession();
 
   if (!session) {
     redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}`);
@@ -27,19 +24,13 @@ export async function requireAdmin() {
 }
 
 export async function getOptionalSession() {
-  return auth.api.getSession({
-    headers: await headers(),
-  });
+  return getCachedSession();
 }
 
 export async function redirectIfAuthenticated() {
-  try {
-    const session = await getOptionalSession();
-    if (session) {
-      const role = (session.user as { role?: string }).role ?? 'user';
-      redirect(getAuthenticatedHomePath(role));
-    }
-  } catch (err) {
-    console.error('[redirectIfAuthenticated]', err);
+  const session = await getOptionalSession();
+  if (session) {
+    const role = (session.user as { role?: string }).role ?? 'user';
+    redirect(getAuthenticatedHomePath(role));
   }
 }

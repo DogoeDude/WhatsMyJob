@@ -33,45 +33,62 @@ function toRecord(row: {
   };
 }
 
+const applicationListSelect = {
+  id: true,
+  jobListingId: true,
+  title: true,
+  company: true,
+  location: true,
+  applyUrl: true,
+  source: true,
+  status: true,
+  hasReply: true,
+  notes: true,
+  appliedAt: true,
+  updatedAt: true,
+} as const;
+
 export async function listUserApplications(userId: string): Promise<JobApplicationRecord[]> {
   const rows = await prisma.jobApplication.findMany({
     where: { userId },
     orderBy: [{ appliedAt: 'desc' }],
+    select: applicationListSelect,
   });
   return rows.map(toRecord);
 }
 
 export async function getApplicationStats(userId: string): Promise<ApplicationStats> {
-  const rows = await prisma.jobApplication.findMany({
-    where: { userId },
-    select: { status: true, hasReply: true },
-  });
-
-  const byStatus = new Map<string, number>();
-  let awaitingReply = 0;
-  let inProcess = 0;
-  let offers = 0;
-  let rejected = 0;
-
-  for (const row of rows) {
-    byStatus.set(row.status, (byStatus.get(row.status) ?? 0) + 1);
-    if (!row.hasReply && !['rejected', 'offer', 'withdrawn'].includes(row.status)) {
-      awaitingReply++;
-    }
-    if (row.status === 'screening' || row.status === 'interview') {
-      inProcess++;
-    }
-    if (row.status === 'offer') offers++;
-    if (row.status === 'rejected') rejected++;
-  }
+  const [total, byStatusRows, awaitingReply, inProcess, offers, rejected] = await Promise.all([
+    prisma.jobApplication.count({ where: { userId } }),
+    prisma.jobApplication.groupBy({
+      by: ['status'],
+      where: { userId },
+      _count: { _all: true },
+    }),
+    prisma.jobApplication.count({
+      where: {
+        userId,
+        hasReply: false,
+        status: { notIn: ['rejected', 'offer', 'withdrawn'] },
+      },
+    }),
+    prisma.jobApplication.count({
+      where: { userId, status: { in: ['screening', 'interview'] } },
+    }),
+    prisma.jobApplication.count({ where: { userId, status: 'offer' } }),
+    prisma.jobApplication.count({ where: { userId, status: 'rejected' } }),
+  ]);
 
   return {
-    total: rows.length,
+    total,
     awaitingReply,
     inProcess,
     offers,
     rejected,
-    byStatus: [...byStatus.entries()].map(([status, count]) => ({ status, count })),
+    byStatus: byStatusRows.map((row) => ({
+      status: row.status,
+      count: row._count._all,
+    })),
   };
 }
 

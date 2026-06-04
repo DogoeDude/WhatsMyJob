@@ -1,16 +1,25 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { pageContainerClass } from '@/lib/ui-classes';
+import { siteHeaderInnerClass } from '@/lib/ui-classes';
+import { cn } from '@/lib/utils';
 
 function NavbarSkeleton() {
   return (
-    <header className="border-b border-border bg-background">
-      <div className={`${pageContainerClass} flex h-14 items-center justify-between`}>
-        <div className="h-5 w-32 animate-pulse rounded bg-muted" />
-        <div className="h-8 w-16 animate-pulse rounded bg-muted" />
-      </div>
-    </header>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-background/90 backdrop-blur-xl">
+        <div className={siteHeaderInnerClass}>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-muted sm:h-11 sm:w-11" />
+            <div className="space-y-1.5">
+              <div className="h-4 w-28 animate-pulse rounded-md bg-muted" />
+              <div className="hidden h-3 w-20 animate-pulse rounded-md bg-muted min-[400px]:block" />
+            </div>
+          </div>
+          <div className="h-11 w-11 animate-pulse rounded-xl bg-muted" />
+        </div>
+      </header>
+    </>
   );
 }
 

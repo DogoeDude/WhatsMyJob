@@ -18,7 +18,15 @@ const nextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns'],
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      '@tanstack/react-virtual',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+    ],
   },
   // Prisma + auth: keep server bundles from pulling broken optional peers.
   serverExternalPackages: ['@prisma/client', 'prisma', 'better-auth'],
