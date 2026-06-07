@@ -174,6 +174,7 @@ export function JobsSidebar({
 
   return (
     <JobsPane
+      scrollRegion="filters"
       className={cn(
         'h-full min-h-0 bg-gradient-to-b from-card via-card to-muted/25',
         resizable

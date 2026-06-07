@@ -1,14 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable';
 import { cn } from '@/lib/utils';
-
-const PANEL_STORAGE_KEY = 'whatsmyjob-jobs-board-v1';
 
 type JobsResizableLayoutProps = {
   filters: ReactNode;
@@ -17,6 +10,29 @@ type JobsResizableLayoutProps = {
   className?: string;
 };
 
+const LEGACY_PANEL_KEYS = [
+  'react-resizable-panels:whatsmyjob-jobs-board-v1',
+  'react-resizable-panels:whatsmyjob-jobs-board-v2',
+  'react-resizable-panels:layout:whatsmyjob-jobs-board-v1',
+  'react-resizable-panels:layout:whatsmyjob-jobs-board-v2',
+];
+
+/** Clear saved panel sizes from older builds that could hide the list column. */
+export function clearLegacyJobsPanelLayout() {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const key of LEGACY_PANEL_KEYS) {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Three-column jobs board: filters | list | detail.
+ * Fixed columns on each load so refresh always shows postings (no persisted collapse).
+ */
 export function JobsResizableLayout({
   filters,
   list,
@@ -24,42 +40,14 @@ export function JobsResizableLayout({
   className,
 }: JobsResizableLayoutProps) {
   return (
-    <ResizablePanelGroup
-      autoSaveId={PANEL_STORAGE_KEY}
-      direction="horizontal"
-      className={cn('min-h-0 flex-1', className)}
-    >
-      <ResizablePanel
-        id="filters"
-        defaultSize={20}
-        minSize={14}
-        maxSize={32}
-        className="min-w-0"
-      >
-        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-          {filters}
-        </div>
-      </ResizablePanel>
-
-      <ResizableHandle
-        withHandle
-        className="w-1.5 bg-border/80 transition-colors hover:bg-primary/25 active:bg-primary/35"
-      />
-
-      <ResizablePanel id="list" defaultSize={34} minSize={22} maxSize={55} className="min-w-0">
-        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">{list}</div>
-      </ResizablePanel>
-
-      <ResizableHandle
-        withHandle
-        className="w-1.5 bg-border/80 transition-colors hover:bg-primary/25 active:bg-primary/35"
-      />
-
-      <ResizablePanel id="detail" defaultSize={46} minSize={28} className="min-w-0">
-        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card">
-          {detail}
-        </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+    <div className={cn('flex h-full min-h-0 w-full flex-1', className)}>
+      <aside className="flex h-full w-[min(100%,18rem)] min-w-[14rem] max-w-[20rem] shrink-0 flex-col overflow-hidden border-r border-border">
+        {filters}
+      </aside>
+      <div className="flex min-h-0 min-w-[12rem] flex-[0.9] flex-col overflow-hidden border-r border-border">
+        {list}
+      </div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card">{detail}</div>
+    </div>
   );
 }

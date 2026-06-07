@@ -17,6 +17,17 @@ export type SourceFacet = {
   count: number;
 };
 
+/** Default home browse — no keyword, source, type, location, or category filters. */
+export function isDefaultJobBrowse(filters: JobListFilters): boolean {
+  return (
+    filters.search.trim() === '' &&
+    filters.sourceIds.length === 0 &&
+    filters.type === '' &&
+    filters.location === '' &&
+    (!filters.category || filters.category === ALL_CATEGORY_ID)
+  );
+}
+
 export function parseJobFilters(searchParams: URLSearchParams): JobListFilters {
   const fromList = searchParams.get('sources')?.split(',').map((s) => s.trim()) ?? [];
   const sourceIds = [...searchParams.getAll('source'), ...fromList].filter(Boolean);

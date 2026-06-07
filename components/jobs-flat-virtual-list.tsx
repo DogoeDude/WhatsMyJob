@@ -5,8 +5,10 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { JobCard } from '@/components/job-card';
 import type { Job } from '@/lib/jobs/types';
 
-const ROW_HEIGHT = 92;
-const VIRTUALIZE_MIN = 12;
+/** Compact cards with title, company, meta — taller than a single line. */
+const ROW_HEIGHT_ESTIMATE = 116;
+/** Default browse loads ≤40 rows; keep a plain list to avoid virtual measure glitches. */
+const VIRTUALIZE_MIN = 80;
 
 type JobsFlatVirtualListProps = {
   jobs: Job[];
@@ -51,7 +53,7 @@ export function JobsFlatVirtualList({
 
     const resolveScrollParent = () => {
       if (cancelled) return;
-      const el = anchorRef.current?.closest('[data-jobs-scroll]');
+      const el = anchorRef.current?.closest('[data-jobs-list-scroll]');
       setScrollElement(el instanceof HTMLElement ? el : null);
     };
 
@@ -69,8 +71,9 @@ export function JobsFlatVirtualList({
   const virtualizer = useVirtualizer({
     count: useVirtual ? jobs.length : 0,
     getScrollElement: () => scrollElement,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => ROW_HEIGHT_ESTIMATE,
     overscan: 6,
+    measureElement: (element) => element.getBoundingClientRect().height,
   });
 
   const virtualizerRef = useRef(virtualizer);
@@ -115,9 +118,10 @@ export function JobsFlatVirtualList({
           return (
             <li
               key={job.id}
-              className="absolute left-0 top-0 w-full"
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              className="absolute left-0 top-0 w-full border-b border-border"
               style={{
-                height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >

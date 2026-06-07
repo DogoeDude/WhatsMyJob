@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseJobFilters } from '@/lib/jobs/filters';
+import { parseJobFilters, isDefaultJobBrowse } from '@/lib/jobs/filters';
 import { resolveJobListLimit } from '@/lib/jobs/limits';
 import { getJobsForApp } from '@/lib/jobs/service';
 
@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
     const includeMeta = searchParams.get('meta') !== '0';
     const result = await getJobsForApp(filters, limit, offset, { refresh, includeMeta });
 
+    const varyBrowse = !refresh && isDefaultJobBrowse(filters);
+
     return NextResponse.json(
       {
         jobs: result.jobs,
@@ -39,9 +41,10 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': refresh
-            ? 'no-store, max-age=0'
-            : 'private, max-age=15, stale-while-revalidate=60',
+          'Cache-Control':
+            refresh || varyBrowse
+              ? 'no-store, max-age=0'
+              : 'private, max-age=15, stale-while-revalidate=60',
         },
       }
     );

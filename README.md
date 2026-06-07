@@ -16,8 +16,8 @@ You apply on the **original listing** (external link)—this app does not replac
 
 ### How it works at a glance
 
-1. **Discover** — Filter by keyword, source, type, location, and category; open jobs in a three-pane layout (filters | list | detail).
-2. **Persist** — Optional admin sync copies provider results into the database; day-to-day browsing reads from there.
+1. **Discover** — Filter by keyword, source, type, location, and category; open jobs in a fixed three-column layout (filters | list | detail).
+2. **Load from database** — After sync, normal page loads read Postgres (fast). Live APIs run on **Refresh** or when the DB is empty.
 3. **Apply elsewhere** — Each card links out to the source’s apply URL.
 4. **Stay organized** — Log applications, update pipeline status, and maintain profile assets in one account.
 
@@ -29,8 +29,8 @@ Built with **Next.js 16**, **React 19**, **Neon Postgres**, **Prisma**, and **Be
 
 | Area | What you get |
 |------|----------------|
-| **Jobs home** (`/`) | Resizable filters \| list \| detail panels; manual **Search** (no auto-search while typing); recency badges (Latest / New / Recent); virtualized list for large result sets |
-| **Data** | Live provider APIs when the DB is empty; cached reads from Postgres after admin sync; **Refresh** fetches live APIs again |
+| **Jobs home** (`/`) | Fixed three-column layout (filters \| list \| detail); manual **Search**; recency badges; virtual list only for 80+ rows |
+| **Data** | **Database-first** when Neon has listings; live APIs as fallback or on **Refresh**; admin/cron sync writes to Postgres |
 | **Profile** (`/profile`) | Headline, bio, skills, work preferences, cover letter, contact email, LinkedIn / portfolio / GitHub; resume upload (PDF/Word, 5 MB) stored on disk |
 | **Applications** (`/analytics`) | Track where you applied, status pipeline, notes, reply flag |
 | **Admin** (`/admin`) | Sync all or one job source; view sync logs and DB stats |
@@ -62,8 +62,7 @@ Built with **Next.js 16**, **React 19**, **Neon Postgres**, **Prisma**, and **Be
 | Library | Purpose |
 |---------|---------|
 | `class-variance-authority`, `clsx`, `tailwind-merge` | Component variants and class merging |
-| `react-resizable-panels` | Jobs page three-pane layout |
-| `@tanstack/react-virtual` | Virtual scrolling for long job lists |
+| `@tanstack/react-virtual` | Virtual scrolling when job lists exceed 80 rows (search results) |
 | `date-fns` | Dates in cards and applications |
 | `next-themes` | Theme plumbing (if enabled in layout) |
 | `sonner` | Toast notifications |
@@ -88,47 +87,173 @@ Built with **Next.js 16**, **React 19**, **Neon Postgres**, **Prisma**, and **Be
 
 ---
 
+## How the system works
+
+WhatsMyJob separates **ingestion** (pulling jobs from boards) from **serving** (showing jobs to users). Users almost always read from Postgres; external APIs run on sync, refresh, or when the database is empty.
+
+### Three data modes
+
+| Mode | When | Source | Typical speed |
+|------|------|--------|----------------|
+| **`database`** | Neon has rows and user is browsing (default) | `JobListing` via Prisma | Fast (ms–low hundreds of ms) |
+| **`live`** | DB empty, or service falls back | `lib/jobs/live-fetch.ts` → provider APIs | Slow (seconds; rate limits possible) |
+| **`refresh`** | User clicks **Refresh from job boards** (`?refresh=1`) | Live APIs, newest-first; may fall back to DB if APIs fail | Slow, intentional |
+
+Decision logic lives in `lib/jobs/service.ts` → `getJobsForApp()`.
+
+### End-to-end flow
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Browser
+  participant RSC as Next.js RSC
+  participant API as /api/jobs
+  participant Service as jobs/service.ts
+  participant DB as Neon Postgres
+  participant Boards as Job board APIs
+
+  User->>Browser: Open /
+  Browser->>RSC: SSR loadHomeInitialData()
+  RSC->>Service: getJobsForApp + getJobsFilterMeta
+  alt DB has listings
+    Service->>DB: searchJobListings (skip/take)
+    DB-->>Service: rows
+  else DB empty
+    Service->>Boards: fetchLiveJobs
+    Boards-->>Service: normalized jobs
+  end
+  Service-->>RSC: jobs + facets
+  RSC-->>Browser: HTML + JobsHome initialData
+
+  User->>Browser: Change filters / Search
+  Browser->>API: GET /api/jobs?...
+  API->>Service: getJobsForApp
+  Service->>DB: query (or live if refresh=1)
+  API-->>Browser: JSON list
+
+  User->>Browser: Refresh from job boards
+  Browser->>API: GET /api/jobs?refresh=1
+  API->>Service: getJobsForApp(refresh)
+  Service->>Boards: live fetch
+  Boards-->>Service: jobs
+  API-->>Browser: JSON (mode live)
+
+  Note over User,DB: Admin or cron sync (background)
+  participant Admin as /admin or cron
+  Admin->>Boards: provider fetch
+  Boards-->>Admin: jobs
+  Admin->>DB: upsert JobListing
+```
+
+### Ingestion (sync)
+
+1. **Admin UI** — `POST /api/jobs/sync` (admin session) calls `lib/jobs/sync.ts`.
+2. **Optional cron** — `GET /api/cron/sync-jobs` with `Authorization: Bearer $CRON_SECRET` (for Vercel Cron or external scheduler).
+3. Each provider implements `fetch` in `lib/jobs/providers/*`, returns normalized rows.
+4. Sync **upserts** by `(sourceId, externalId)` into `JobListing`, updates `JobSource` stats and `JobSyncLog`.
+
+Sync does **not** replace the whole table on each run—it merges new/updated rows. The full corpus stays searchable; home browse uses `offset` / **Load more** for pagination.
+
+### Serving (browse)
+
+1. **SSR** — `app/page.tsx` → `loadHomeInitialData()` loads list + sidebar facets in parallel (`React.cache` for session).
+2. **Client** — `components/jobs-home.tsx` hydrates from SSR; skips duplicate fetch only when SSR returned rows.
+3. **List API** — `GET /api/jobs` with `meta=0` for fast list-only updates; `GET /api/jobs/meta` for filter facets.
+4. **Pagination** — Response includes `offset` (DB skip used). Load more sends `offset = previousOffset + jobs.length`.
+5. **Logos** — `enrichJobsWithLogos()` fills missing logos from DB scope lookup + favicon fallback; `/api/logo` proxies blocked URLs.
+
+### Auth & roles
+
+| Role | Jobs browse | Profile / applications | Admin sync |
+|------|-------------|------------------------|------------|
+| Guest | Yes (limited list size) | No | No |
+| `user` | Yes | Yes | No |
+| `admin` | Yes | Yes | Yes |
+
+Better Auth stores users in Postgres; `role` is on `User` (default `user`). Guards: `lib/auth-guards.ts` (pages), `lib/api-auth.ts` (API).
+
+---
+
 ## Architecture
+
+### Layer diagram
 
 ```mermaid
 flowchart TB
-  subgraph client [Browser]
-    JobsHome[jobs-home.tsx]
-    Navbar[navbar.tsx]
-    Profile[profile-form.tsx]
-    Apps[applications-dashboard.tsx]
+  subgraph presentation [Presentation]
+    Pages["app/**/page.tsx (RSC)"]
+    Client["components/*.tsx (client)"]
   end
 
-  subgraph next [Next.js App Router]
-    Pages[app/*/page.tsx RSC]
-    API[app/api/*/route.ts]
-    AuthRoute["/api/auth/[...all]"]
+  subgraph api [API routes]
+    JobsAPI["/api/jobs*"]
+    ProfileAPI["/api/profile*"]
+    AppsAPI["/api/applications*"]
+    AuthAPI["/api/auth/[...all]"]
+    CronAPI["/api/cron/sync-jobs"]
   end
 
-  subgraph lib [lib/]
-    Service[jobs/service.ts]
-    Providers[jobs/providers/*]
-    Prisma[(Prisma → Neon)]
-    ResumeFS[data/resumes/]
+  subgraph domain [Domain lib/]
+    Service["jobs/service.ts"]
+    Query["jobs/query.ts"]
+    Sync["jobs/sync.ts"]
+    Providers["jobs/providers/*"]
+    ProfileQ["profile/query.ts"]
+    AppsQ["applications/query.ts"]
   end
 
-  JobsHome --> API
+  subgraph data [Data]
+    Prisma[(Prisma)]
+    Neon[(Neon Postgres)]
+    Disk["data/resumes/"]
+  end
+
+  subgraph external [External]
+    Boards[Job board HTTP APIs]
+  end
+
+  Client --> JobsAPI
   Pages --> Service
-  API --> Service
-  Service --> Prisma
+  JobsAPI --> Service
+  Service --> Query
   Service --> Providers
-  Providers --> ExternalAPIs[Public job APIs]
-  AuthRoute --> BetterAuth[Better Auth]
-  BetterAuth --> Prisma
-  API --> ResumeFS
+  Sync --> Providers
+  Sync --> Query
+  Query --> Prisma
+  Providers --> Boards
+  ProfileAPI --> ProfileQ
+  AppsAPI --> AppsQ
+  ProfileQ --> Prisma
+  AppsQ --> Prisma
+  ProfileAPI --> Disk
+  AuthAPI --> Prisma
+  CronAPI --> Sync
+  Prisma --> Neon
 ```
 
-**Request flow (jobs home)**
+### Jobs module map
 
-1. **SSR** — `app/page.tsx` calls `loadHomeInitialData()` (`lib/home-initial-data.ts`): parallel job list + filter metadata, using `React.cache` for session (`lib/auth-session.ts`).
-2. **Client browse** — `components/jobs-home.tsx` calls `GET /api/jobs` with filters; `meta=0` skips heavy facet work on list fetches; `GET /api/jobs/meta` loads facets when needed.
-3. **Refresh** — `?refresh=1` on `/api/jobs` pulls from live providers (newest-first ordering in the service layer).
-4. **Persisted corpus** — Admin `POST /api/jobs/sync` writes to `JobListing` / `JobSource` / `JobSyncLog` via `lib/jobs/sync.ts`.
+| File / folder | Responsibility |
+|---------------|----------------|
+| `lib/jobs/service.ts` | Orchestration: DB vs live vs refresh, facets, messages |
+| `lib/jobs/query.ts` | Prisma list/search, counts, facets, `hasAnyJobListings` |
+| `lib/jobs/sync.ts` | Admin sync: upsert batches, sync logs |
+| `lib/jobs/live-fetch.ts` | Parallel provider fetch for live/refresh |
+| `lib/jobs/filters.ts` | Parse URL params, apply filters, facet merge |
+| `lib/jobs/providers/*` | One module per board API |
+| `lib/jobs/enrich-logos.ts` | Logo backfill without live API on every request |
+| `lib/home-initial-data.ts` | SSR bootstrap for jobs home |
+| `components/jobs-home.tsx` | Client state, fetch, three-pane UI |
+| `components/jobs-resizable-layout.tsx` | Fixed filters \| list \| detail columns |
+
+### Request flow (jobs home) — summary
+
+1. **SSR** — `loadHomeInitialData()`: `getJobsForApp(..., { includeMeta: false })` + `getJobsFilterMeta()` in parallel.
+2. **Hydration** — If SSR returned jobs, client keeps them; otherwise fetches `GET /api/jobs`.
+3. **Filter change** — Client calls `/api/jobs` (+ `/api/jobs/meta` when facets needed).
+4. **Refresh** — `?refresh=1` bypasses DB read path and hits live APIs.
+5. **Detail** — Selected job from list state; full description from list row or `GET /api/jobs/[id]`.
 
 ---
 
@@ -149,19 +274,30 @@ Layouts use `components/page-shell.tsx` (dynamic navbar), `components/app-loadin
 
 ## HTTP API reference
 
-All JSON routes return `{ error: string }` on failure unless noted. Session cookies are set by Better Auth.
+All JSON routes return `{ error: string, detail?: string }` on failure unless noted. Base URL: your app origin. Session cookies via Better Auth.
+
+### Auth helpers
+
+| Helper | Location | Returns |
+|--------|----------|---------|
+| `getApiSession()` | `lib/api-auth.ts` | Session or null |
+| `requireSessionApi()` | `lib/api-auth.ts` | `{ session }` or 401 |
+| `requireAdminApi()` | `lib/api-auth.ts` | `{ session }` or 401/403 |
+| `getCachedSession()` | `lib/auth-session.ts` | SSR session (`React.cache`) |
 
 ### Auth
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| * | `/api/auth/[...all]` | — | Better Auth handler (sign-in, sign-up, sign-out, session). See [Better Auth docs](https://www.better-auth.com/docs). |
+| * | `/api/auth/[...all]` | — | Better Auth: sign-up, sign-in, sign-out, session. [Docs](https://www.better-auth.com/docs) |
 
-Client: `lib/auth-client.ts`. Server session: `auth.api.getSession()` / `getCachedSession()` in `lib/auth-session.ts`.
+Client: `lib/auth-client.ts`.
 
-### Jobs (public)
+### Jobs (public read)
 
 #### `GET /api/jobs`
+
+Main list/search → `getJobsForApp()` in `lib/jobs/service.ts`.
 
 Query parameters (parsed in `lib/jobs/filters.ts`):
 
@@ -173,60 +309,82 @@ Query parameters (parsed in `lib/jobs/filters.ts`):
 | `type` | `remote` | Job type substring match |
 | `location` | `Manila` | Location substring match |
 | `category` | `it` | Category id (`lib/jobs/categories.ts`) |
-| `limit` | `50` | Page size (capped by `lib/jobs/limits.ts`) |
-| `offset` | `50` | Pagination offset |
-| `refresh` | `1` | Fetch from **live** provider APIs |
-| `meta` | `0` | Omit filter facets from response (faster list loads) |
+| `limit` | `40` | Page size (40 browse, 150 search, max 200) |
+| `offset` | `40` | Pagination skip; response echoes `offset` for load-more |
+| `refresh` | `1` | Live provider APIs (newest first), skips DB |
+| `meta` | `0` | Omit facets (faster list-only fetch) |
 
-**Response (200):** `{ jobs, stats, totalMatching, hasMore, offset, sources?, types?, locationSuggestions?, filters, mode, message?, providerErrors? }`
+**Response `200`:** `{ jobs, stats, totalMatching, hasMore, offset, sources?, types?, locationSuggestions?, filters, mode, message?, providerErrors? }`
 
-- `mode`: e.g. `database` vs live provider mix (see `lib/jobs/service.ts`).
-- Cache: `private, max-age=15` (or `no-store` when `refresh=1`).
+| Field | Meaning |
+|-------|---------|
+| `mode` | `"database"` or `"live"` |
+| `offset` | DB slice start — next page: `offset + jobs.length` |
+| `hasMore` | More rows match filters beyond this page |
+| `providerErrors` | Failed boards on live/refresh |
+
+**Cache-Control:** `no-store` on refresh/default browse; else `private, max-age=15`.
 
 #### `GET /api/jobs/meta`
 
-Same filter query params as `/api/jobs` (no `refresh`). Returns facet metadata only: source counts, types, locations, `totalMatching`.
+Same filter params as `/api/jobs` (no `refresh`). Returns `{ sources, types, locationSuggestions, totalMatching }` only. Cached 60s.
 
 #### `GET /api/jobs/[id]`
 
-Single listing by Prisma `JobListing.id`. **404** if missing.
+Single job by Prisma id (full description). `200` `{ job }` · `404` if missing.
 
 #### `GET /api/jobs/stats`
 
-Aggregate counts for the app (total jobs, companies, locations) via `getAppJobStats()`.
+`{ totalJobs, locationCount, companyCount, mode? }`
 
-#### `GET /api/logo?url=...`
+#### `GET /api/logo?url=https://...`
 
-Proxies a remote company logo URL (SSRF-safe host checks). Used when boards block hotlinking.
+Logo proxy (SSRF-safe). Returns image bytes.
 
 ### Jobs (admin)
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/jobs/sources` | Admin | DB sources, recent sync logs, configured providers |
-| `POST` | `/api/jobs/sync` | Admin | Sync all providers, or body `{ "sourceId": "remotive" }` for one. `maxDuration` 300s |
+Requires admin role.
+
+#### `GET /api/jobs/sources`
+
+Dashboard: `{ sources, logs, configured, stats }`.
+
+#### `POST /api/jobs/sync`
+
+| Body | Action |
+|------|--------|
+| `{}` | Sync all providers |
+| `{ "sourceId": "remotive" }` | Sync one provider |
+
+Upserts via `lib/jobs/sync.ts`. `maxDuration` 300s.
+
+#### `GET /api/cron/sync-jobs`
+
+Scheduled sync. Header `Authorization: Bearer $CRON_SECRET`. Requires `CRON_SECRET` env. Same as sync all.
 
 ### Profile (signed-in)
 
-| Method | Path | Body / input | Description |
-|--------|------|--------------|-------------|
-| `GET` | `/api/profile` | — | User profile (auto-created if missing) |
-| `PATCH` | `/api/profile` | `UpdateProfileInput` JSON | Update fields (name, headline, skills, URLs, cover letter, etc.) |
-| `GET` | `/api/profile/resume` | — | Download resume file (attachment) |
-| `POST` | `/api/profile/resume` | `multipart/form-data` field `file` | Upload PDF/Word (max 5 MB) |
-| `DELETE` | `/api/profile/resume` | — | Remove resume file + metadata |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/profile | Get/create profile |
+| PATCH | /api/profile | Update UpdateProfileInput |
+| GET | /api/profile/resume | Download resume |
+| POST | /api/profile/resume | Upload ile (PDF/Word, 5 MB) |
+| DELETE | /api/profile/resume | Remove resume |
 
-Resume files: `data/resumes/<userId>/` (gitignored). Constants: `lib/profile/resume-constants.ts`.
+Storage: data/resumes/<userId>/
 
 ### Applications (signed-in)
 
-| Method | Path | Body | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/applications` | — | List current user’s applications |
-| `POST` | `/api/applications` | `{ jobListingId?, title, company, location?, applyUrl?, source? }` | Create application (`title` + `company` required) |
-| `PATCH` | `/api/applications/[id]` | `{ status?, hasReply?, notes? }` | Update; `status` must be one of `lib/applications/statuses.ts` |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/applications | List applications |
+| POST | /api/applications | Create (	itle, company required) |
+| PATCH | /api/applications/[id] | Update status, notes, reply flag |
 
-**Application statuses:** `applied`, `screening`, `interview`, `offer`, `rejected`, `withdrawn`, `no_reply`.
+Statuses: pplied, screening, interview, offer, 
+ejected, withdrawn, 
+o_reply.
 
 ---
 
@@ -250,9 +408,10 @@ Catalog metadata: `lib/jobs/sources-catalog.ts`.
 
 **Behavior**
 
-- **Empty DB** — Home can show live provider results.
-- **After sync** — Reads prefer Postgres; UI **Refresh** uses `refresh=1` for live APIs.
-- **Logos** — `lib/jobs/resolve-logo.ts`, `enrich-logos.ts`, favicon fallbacks, `/api/logo` proxy.
+- **Default browse** — If `JobListing` has rows, `GET /api/jobs` reads Postgres (fast). Ordered by `postedAt` / `syncedAt` desc with `offset` pagination.
+- **Empty DB** — Service falls back to `fetchLiveJobs()` until admin/cron sync populates Neon.
+- **Refresh** — `?refresh=1` always hits live APIs; upsert happens only via sync endpoints, not on every refresh.
+- **Logos** — `lib/jobs/enrich-logos.ts`, `resolve-logo.ts`, favicon fallback, `/api/logo` proxy.
 
 ### Recommended env for Philippines + US
 
@@ -288,6 +447,7 @@ Copy `.env.example` → `.env.local`.
 | `ADZUNA_COUNTRIES` | No | e.g. `us,sg` |
 | `ADZUNA_DEFAULT_WHAT` / `ADZUNA_DEFAULT_WHERE` | No | Default Adzuna search |
 | `REED_API_KEY` | No | Reed.co.uk |
+| `CRON_SECRET` | No | Bearer token for `GET /api/cron/sync-jobs` (scheduled sync) |
 
 ---
 
@@ -334,8 +494,10 @@ Open [http://localhost:3000](http://localhost:3000).
 ### First data load
 
 1. Promote admin (above), sign in.
-2. **Admin** → sync all sources (or rely on live APIs on first visit).
-3. **Jobs** (`/`) — browse DB-backed listings; **Refresh** for live API pass.
+2. **Admin** → **Sync all sources** (or call `POST /api/jobs/sync` as admin).
+3. Open **Jobs** (`/`) — listings load from Postgres; use **Refresh from job boards** for a live API pass.
+
+Optional: set `CRON_SECRET` and schedule `GET /api/cron/sync-jobs` (e.g. Vercel Cron every hour) to keep the catalog updated automatically.
 
 ---
 
@@ -376,20 +538,22 @@ app/
   admin/                     # Sync dashboard (admin layout)
   api/
     auth/[...all]/route.ts   # Better Auth
+    cron/sync-jobs/route.ts  # Scheduled sync (Bearer CRON_SECRET)
     jobs/route.ts            # List + search
     jobs/meta/route.ts       # Filter facets
     jobs/[id]/route.ts       # Single job
     jobs/stats/route.ts      # Aggregate stats
     jobs/sources/route.ts    # Admin source status
-    jobs/sync/route.ts       # Admin sync
+    jobs/sync/route.ts       # Admin sync (POST)
     applications/            # CRUD applications
     profile/                 # Profile + resume
     logo/route.ts            # Logo proxy
 components/
   jobs-home.tsx              # Main jobs client UI
   jobs-sidebar.tsx           # Filters + search
-  jobs-resizable-layout.tsx  # Three-pane layout
-  jobs-flat-virtual-list.tsx # Virtual list
+  jobs-resizable-layout.tsx  # Fixed three-column layout
+  jobs-flat-virtual-list.tsx # List (virtual when 80+ jobs)
+  jobs-board-layout.tsx      # JobsPane scroll regions
   job-detail-panel*.tsx      # Detail pane
   navbar.tsx                 # Header + mobile bottom tabs
   profile-form.tsx           # Profile sections
@@ -419,7 +583,9 @@ data/resumes/                # Uploaded resumes (gitignored)
 | **Prisma `EPERM` on `db:generate`** | Stop `npm run dev`, then `npm run db:generate` |
 | **Port 3000 in use** | Kill duplicate `node` / `next dev` processes |
 | **`NEXT_REDIRECT` on login/register** | Expected when already signed in; guards use `redirect()` without try/catch (`lib/auth-guards.ts`) |
-| **Failed to load jobs** | Check `DATABASE_URL`, run `db:push`, regenerate client |
+| **Failed to load jobs** | Check `DATABASE_URL`, run `db:push`, regenerate client; run admin **Sync all sources** |
+| **Empty list but sidebar shows counts** | Hard refresh (`Ctrl+Shift+R`); click **Refresh from job boards**; ensure sync completed |
+| **Only filters column visible** | Hard refresh; old resizable-panel localStorage is cleared on load automatically |
 | **Sparse sources on page 1** | Admin sync all sources; use **Refresh** for live mix |
 | **Letter avatars instead of logos** | Some boards block server fetch; favicon + `/api/logo` fallback |
 | **Resume upload fails** | PDF or Word only, ≤ 5 MB; ensure `data/resumes` is writable |

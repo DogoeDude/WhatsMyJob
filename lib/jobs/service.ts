@@ -103,7 +103,7 @@ export async function getJobsForApp(
   if (!refresh) {
     try {
       if (await hasAnyJobListings()) {
-        const jobs = await searchJobListings(filters, limit, offset);
+        const { jobs, skip } = await searchJobListings(filters, limit, offset);
         const enrichedJobs = await enrichJobsWithLogos(jobs);
 
         let sources: SourceFacet[] = [];
@@ -118,7 +118,11 @@ export async function getJobsForApp(
           types = meta.types;
           locationSuggestions = meta.locationSuggestions;
           totalMatching = meta.totalMatching;
-          hasMore = offset + enrichedJobs.length < totalMatching;
+          hasMore = skip + enrichedJobs.length < totalMatching;
+        } else {
+          const total = await countJobListings(filters);
+          totalMatching = total;
+          hasMore = skip + enrichedJobs.length < total;
         }
 
         return {
@@ -126,7 +130,7 @@ export async function getJobsForApp(
           stats: statsFromFilteredJobs(enrichedJobs),
           totalMatching,
           hasMore,
-          offset,
+          offset: skip,
           sources,
           types,
           locationSuggestions,
@@ -163,13 +167,14 @@ export async function getJobsForApp(
       ? interleaveJobsBySource(filtered)
       : sortJobsByRecency(filtered);
   const totalMatching = mixed.length;
-  const page = mixed.slice(offset, offset + limit);
+  const sliceStart = offset;
+  const page = mixed.slice(sliceStart, sliceStart + limit);
   let jobs = await enrichJobsWithLogos(page, { allowLiveCache: refresh });
 
   if (refresh && jobs.length === 0) {
     try {
       if (await hasAnyJobListings()) {
-        const dbJobs = await searchJobListings(filters, limit, offset);
+        const { jobs: dbJobs, skip } = await searchJobListings(filters, limit, offset);
         jobs = await enrichJobsWithLogos(dbJobs);
         let dbSources: SourceFacet[] = sources;
         let dbTypes: string[] = [];
@@ -183,7 +188,7 @@ export async function getJobsForApp(
           dbTypes = meta.types;
           dbLocations = meta.locationSuggestions;
           dbTotal = meta.totalMatching;
-          dbHasMore = offset + jobs.length < dbTotal;
+          dbHasMore = skip + jobs.length < dbTotal;
         }
 
         const failedBoards = Object.keys(providerErrors).length;
@@ -192,7 +197,7 @@ export async function getJobsForApp(
           stats: statsFromFilteredJobs(jobs),
           totalMatching: dbTotal,
           hasMore: dbHasMore,
-          offset,
+          offset: skip,
           sources: dbSources,
           types: dbTypes,
           locationSuggestions: dbLocations,
@@ -225,8 +230,7 @@ export async function getJobsForApp(
   } else {
     try {
       if (!(await hasAnyJobListings())) {
-        message =
-          'Live listings from job board APIs. Admin → Sync all sources saves them to your database.';
+        message = 'Showing live listings from job board APIs.';
       }
     } catch {
       message =
@@ -238,8 +242,8 @@ export async function getJobsForApp(
     jobs,
     stats: statsFromFilteredJobs(jobs),
     totalMatching,
-    hasMore: offset + jobs.length < totalMatching,
-    offset,
+    hasMore: sliceStart + jobs.length < totalMatching,
+    offset: sliceStart,
     sources,
     types,
     locationSuggestions,

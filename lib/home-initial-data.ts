@@ -23,8 +23,9 @@ export const loadHomeInitialData = cache(async (): Promise<JobsHomeInitialData |
       jobs: result.jobs,
       totalMatching: meta?.totalMatching ?? result.totalMatching,
       hasMore: meta
-        ? result.jobs.length < meta.totalMatching
+        ? result.offset + result.jobs.length < (meta?.totalMatching ?? result.totalMatching)
         : result.hasMore,
+      browseOffset: result.offset,
       sources: meta?.sources ?? [],
       types: meta?.types ?? [],
       locationSuggestions: meta?.locationSuggestions ?? [],

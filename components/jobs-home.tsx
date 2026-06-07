@@ -6,9 +6,8 @@ import { JobDetailPanelLazy } from '@/components/job-detail-panel-lazy';
 import { JobsFlatVirtualList } from '@/components/jobs-flat-virtual-list';
 import { buildJobsSearchParams } from '@/lib/jobs/build-search-params';
 import { type JobFilterState } from '@/components/job-filters';
-import { JobSections } from '@/components/job-sections';
-import { JobsPane, JobsPaneHeader } from '@/components/jobs-board-layout';
-import { JobsResizableLayout } from '@/components/jobs-resizable-layout';
+import { JobsPane, JobsPaneHeader, resetJobsListScroll } from '@/components/jobs-board-layout';
+import { JobsResizableLayout, clearLegacyJobsPanelLayout } from '@/components/jobs-resizable-layout';
 import { JobsSidebar } from '@/components/jobs-sidebar';
 import { PageContent, PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
@@ -50,6 +49,34 @@ function formatProviderErrors(errors: Record<string, string> | undefined): strin
   const failed = Object.keys(errors);
   if (failed.length === 0) return null;
   return `${failed.length} job board${failed.length === 1 ? '' : 's'} could not be reached.`;
+}
+
+function emptyJobsCopy(opts: {
+  hasBoardFilters: boolean;
+  hasSearch: boolean;
+  category: string;
+  catalogHasJobs: boolean;
+}): { title: string; description: string; useSearchIcon: boolean } {
+  if (opts.hasBoardFilters || opts.hasSearch || opts.category !== ALL_CATEGORY_ID) {
+    return {
+      useSearchIcon: true,
+      title: 'No matches',
+      description: 'Try a different search term, board, or category.',
+    };
+  }
+  if (opts.catalogHasJobs) {
+    return {
+      useSearchIcon: false,
+      title: 'Couldn’t load listings',
+      description: 'Something went wrong loading this page. Try again, or use Refresh from job boards.',
+    };
+  }
+  return {
+    useSearchIcon: false,
+    title: 'No jobs yet',
+    description:
+      'Use Refresh from job boards in the sidebar to fetch listings, or reload the page.',
+  };
 }
 
 export type { JobsHomeInitialData } from '@/lib/jobs/home-types';
@@ -107,12 +134,13 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
   jobsCountRef.current = jobs.length;
   const fetchSeqRef = useRef(0);
   const refreshInFlightRef = useRef(false);
+  const browseOffsetRef = useRef(initialData?.browseOffset ?? 0);
   const abortRef = useRef<AbortController | null>(null);
   const [listVersion, setListVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(initialData?.message ?? null);
-  /** Skip one automatic DB fetch when SSR already hydrated the list. */
-  const skipInitialBrowseRef = useRef(!!initialData);
+  /** Skip client refetch only when SSR already returned rows. */
+  const skipInitialBrowseRef = useRef(!!initialData && (initialData.jobs?.length ?? 0) > 0);
   const skipInitialMetaRef = useRef(initialData?.metaLoaded ?? false);
   /** After a manual refresh, block browse effect from replacing live results with DB. */
   const liveListLockRef = useRef(false);
@@ -199,7 +227,7 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
         });
 
         const res = await fetch(`/api/jobs?${params}`, {
-          cache: reload ? 'no-store' : 'default',
+          cache: reload || !append ? 'no-store' : 'default',
           signal: abortRef.current?.signal,
         });
         const data = (await res.json()) as JobsResponse;
@@ -214,6 +242,9 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
         setJobs((prev) => (append ? mergeJobs(prev, incoming) : incoming));
         const total = data.totalMatching ?? incoming.length;
         setTotalMatching(total);
+        if (!append && typeof data.offset === 'number') {
+          browseOffsetRef.current = data.offset;
+        }
         if (!session && !append) {
           setHasMore(total > incoming.length || incoming.length >= GUEST_JOB_LIMIT);
         } else {
@@ -391,7 +422,13 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
       return;
     }
     if (!hasMore || isLoadingMore || isLoading) return;
-    fetchJobs(searchQuery, debouncedFilters, category, jobs.length, true);
+    fetchJobs(
+      searchQuery,
+      debouncedFilters,
+      category,
+      browseOffsetRef.current + jobs.length,
+      true
+    );
   };
 
   const showListFooter = isGuest
@@ -437,9 +474,36 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
 
   const hasSearch = searchQuery.trim().length > 0;
   const searchPending = searchInput.trim() !== searchQuery.trim();
-  const showEmpty = !isLoading && !isListUpdating && !error && jobs.length === 0;
+  const catalogHasJobs =
+    (totalMatching ?? 0) > 0 || sourceFacets.some((source) => source.count > 0);
+  const emptyJobs = emptyJobsCopy({
+    hasBoardFilters,
+    hasSearch,
+    category,
+    catalogHasJobs,
+  });
+  const showEmpty =
+    !isLoading && !isListUpdating && !isRefreshing && !error && jobs.length === 0;
   const showFullSkeleton = isLoading && jobs.length === 0;
-  const showSections = category === ALL_CATEGORY_ID && !hasSearch;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    clearLegacyJobsPanelLayout();
+    const prev = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    if (window.location.hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+    resetJobsListScroll();
+    const raf = requestAnimationFrame(() => resetJobsListScroll());
+    return () => {
+      window.history.scrollRestoration = prev;
+    };
+  }, []);
+
+  useEffect(() => {
+    resetJobsListScroll();
+  }, [listVersion]);
 
   const countLabel = () => {
     if (isLoading && jobs.length === 0) return null;
@@ -592,33 +656,25 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
             ) : showEmpty ? (
               <EmptyState
                 className="flex-1"
-                icon={
-                  hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
-                    ? SearchX
-                    : Briefcase
-                }
-                title={
-                  hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
-                    ? 'No matches'
-                    : 'No jobs yet'
-                }
-                description={
-                  hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
-                    ? 'Try a different search term, board, or category.'
-                    : 'Sign in as admin and run a sync, or wait for the live API feed.'
-                }
+                icon={emptyJobs.useSearchIcon ? SearchX : Briefcase}
+                title={emptyJobs.title}
+                description={emptyJobs.description}
                 action={
                   <Button
                     variant="outline"
                     onClick={
                       hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
                         ? clearAllFilters
-                        : () => fetchJobs('', defaultFilters, category, 0, false)
+                        : () => {
+                            void fetchJobs('', defaultFilters, category, 0, false, true);
+                          }
                     }
                   >
                     {hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
                       ? 'Clear filters'
-                      : 'Try again'}
+                      : catalogHasJobs
+                        ? 'Reload listings'
+                        : 'Refresh from job boards'}
                   </Button>
                 }
               />
@@ -627,6 +683,7 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
             ) : mobileView === 'list' ? (
               <JobsPane
                 className="relative min-h-0 flex-1"
+                scrollRegion="list"
                 header={listHeader}
                 footer={listFooter}
               >
@@ -638,22 +695,13 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
                     <div className="h-full w-1/3 animate-pulse bg-primary" />
                   </div>
                 )}
-                {showSections ? (
-                  <JobSections
-                    key={listVersion}
-                    jobs={jobs}
-                    selectedJobId={selectedJob?.id}
-                    onJobSelect={selectJob}
-                  />
-                ) : (
-                  <JobsFlatVirtualList
-                    key={listVersion}
-                    jobs={jobs}
-                    selectedJobId={selectedJob?.id}
-                    onJobSelect={selectJob}
-                    freezeLayout={isListUpdating}
-                  />
-                )}
+                <JobsFlatVirtualList
+                  key={listVersion}
+                  jobs={jobs}
+                  selectedJobId={selectedJob?.id}
+                  onJobSelect={selectJob}
+                  freezeLayout={isListUpdating}
+                />
               </JobsPane>
             ) : (
               <JobDetailPanelLazy
@@ -672,37 +720,33 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
               </div>
             ) : showEmpty ? (
               <div className="flex min-h-0 flex-1">
-                <JobsSidebar {...sidebarProps} resizable className="h-full w-full" />
+                <JobsSidebar
+                  {...sidebarProps}
+                  resizable
+                  className="h-full w-[min(100%,18rem)] min-w-[14rem] max-w-[20rem] shrink-0"
+                />
                 <div className="flex min-w-0 flex-1 flex-col border-l border-border">
                   <EmptyState
                     className="flex-1"
-                    icon={
-                      hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
-                        ? SearchX
-                        : Briefcase
-                    }
-                    title={
-                      hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
-                        ? 'No matches'
-                        : 'No jobs yet'
-                    }
-                    description={
-                      hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
-                        ? 'Try a different search term, board, or category.'
-                        : 'Sign in as admin and run a sync, or wait for the live API feed.'
-                    }
+                    icon={emptyJobs.useSearchIcon ? SearchX : Briefcase}
+                    title={emptyJobs.title}
+                    description={emptyJobs.description}
                     action={
                       <Button
                         variant="outline"
                         onClick={
                           hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
                             ? clearAllFilters
-                            : () => fetchJobs('', defaultFilters, category, 0, false)
+                            : () => {
+                                void fetchJobs('', defaultFilters, category, 0, false, true);
+                              }
                         }
                       >
                         {hasBoardFilters || hasSearch || category !== ALL_CATEGORY_ID
                           ? 'Clear filters'
-                          : 'Try again'}
+                          : catalogHasJobs
+                            ? 'Reload listings'
+                            : 'Refresh from job boards'}
                       </Button>
                     }
                   />
@@ -719,7 +763,12 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
               <JobsResizableLayout
                 filters={<JobsSidebar {...sidebarProps} resizable className="h-full w-full" />}
                 list={
-                  <JobsPane className="relative h-full" header={listHeader} footer={listFooter}>
+                  <JobsPane
+                    className="relative h-full"
+                    scrollRegion="list"
+                    header={listHeader}
+                    footer={listFooter}
+                  >
                     {isListUpdating && (
                       <div
                         className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-primary/20"
@@ -728,22 +777,13 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
                         <div className="h-full w-1/3 animate-pulse bg-primary" />
                       </div>
                     )}
-                    {showSections ? (
-                      <JobSections
-                        key={listVersion}
-                        jobs={jobs}
-                        selectedJobId={selectedJob?.id}
-                        onJobSelect={selectJob}
-                      />
-                    ) : (
-                      <JobsFlatVirtualList
-                        key={listVersion}
-                        jobs={jobs}
-                        selectedJobId={selectedJob?.id}
-                        onJobSelect={selectJob}
-                        freezeLayout={isListUpdating}
-                      />
-                    )}
+                    <JobsFlatVirtualList
+                      key={listVersion}
+                      jobs={jobs}
+                      selectedJobId={selectedJob?.id}
+                      onJobSelect={selectJob}
+                      freezeLayout={isListUpdating}
+                    />
                   </JobsPane>
                 }
                 detail={

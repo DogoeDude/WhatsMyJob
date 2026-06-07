@@ -29,6 +29,12 @@ export function sortJobsByRecency(jobs: Job[]): Job[] {
   return [...jobs].sort((a, b) => (b.postedAtMs ?? 0) - (a.postedAtMs ?? 0));
 }
 
+/** Pick a random window into a list so each visit can show a different slice. */
+export function pickRandomWindowStart(total: number, limit: number): number {
+  if (total <= limit || limit <= 0) return 0;
+  return Math.floor(Math.random() * (total - limit + 1));
+}
+
 export function dedupeStrings(values: unknown[], caseInsensitive = false): string[] {
   const seen = new Set<string>();
   const out: string[] = [];

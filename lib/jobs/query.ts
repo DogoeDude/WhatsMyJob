@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import type { JobListFilters } from '@/lib/jobs/filters';
 import { ALL_CATEGORY_ID, getCategoryById } from '@/lib/jobs/categories';
-import { dedupeStrings } from '@/lib/jobs/utils';
+import { dedupeStrings, pickRandomWindowStart } from '@/lib/jobs/utils';
 import { jobListingToJob } from '@/lib/jobs/serialize';
 import type { Prisma } from '@prisma/client';
 
@@ -155,21 +155,38 @@ async function searchJobListingsMixed(
   return interleaved.slice(offset, offset + limit);
 }
 
-export async function searchJobListings(filters: JobListFilters, limit = 150, offset = 0) {
-  // Mixed interleave uses many DB round-trips; use chronological list for normal page sizes.
-  if (shouldMixSources(filters) && limit + offset > 80) {
-    return searchJobListingsMixed(filters, limit, offset);
+export type SearchJobListingsOptions = {
+  /** When true and offset is 0, pick a random slice instead of always showing the newest rows. */
+  randomStart?: boolean;
+};
+
+export async function searchJobListings(
+  filters: JobListFilters,
+  limit = 150,
+  offset = 0,
+  options?: SearchJobListingsOptions
+) {
+  let skip = offset;
+  if (options?.randomStart && offset === 0 && shouldMixSources(filters)) {
+    const total = await countJobListings(filters);
+    skip = pickRandomWindowStart(total, limit);
+  }
+
+  // Mixed interleave breaks with random skip — use flat skip/take for random browse.
+  if (shouldMixSources(filters) && limit + skip > 80 && !options?.randomStart) {
+    const jobs = await searchJobListingsMixed(filters, limit, skip);
+    return { jobs, skip };
   }
 
   const rows = await prisma.jobListing.findMany({
     where: buildWhere(filters),
     select: listListingSelect,
     orderBy: [{ postedAt: 'desc' }, { syncedAt: 'desc' }],
-    skip: offset,
+    skip,
     take: limit,
   });
 
-  return rows.map((row) => rowToListJob(row));
+  return { jobs: rows.map((row) => rowToListJob(row)), skip };
 }
 
 export async function getJobListingById(id: string) {
