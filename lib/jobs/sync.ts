@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { revalidateTag } from 'next/cache';
+import { invalidateHasJobsCache } from '@/lib/jobs/query';
 import { clearLogoCache } from '@/lib/jobs/enrich-logos';
 import { getActiveProviders, getProvider, jobProviders } from '@/lib/jobs/providers';
 import type { NormalizedJobInput, SyncProviderResult } from '@/lib/jobs/types';
@@ -18,6 +20,13 @@ const SOURCE_META: Record<string, { name: string; kind: 'api' | 'api_key' }> = {
 
 const UPSERT_BATCH = 40;
 const SYNC_CONCURRENCY = 3;
+
+/** Invalidate list + sidebar caches after job data changes. */
+export function invalidateJobsCaches() {
+  clearLogoCache();
+  invalidateHasJobsCache();
+  revalidateTag('jobs-meta', { expire: 0 });
+}
 
 export async function ensureJobSources() {
   await prisma.$transaction(
@@ -197,6 +206,6 @@ export async function syncAllJobProviders(): Promise<
     }
   });
 
-  clearLogoCache();
+  invalidateJobsCaches();
   return results;
 }

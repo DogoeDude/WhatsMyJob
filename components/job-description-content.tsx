@@ -1,7 +1,9 @@
 'use client';
 
-import { Check, DollarSign, MapPin, Clock, Info } from 'lucide-react';
-import {
+import { useEffect, useMemo, useState } from 'react';
+import { Check, DollarSign, MapPin, Clock, Info, Languages, Loader2, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { isLikelyGerman } from '@/lib/translate/detect-german';import {
   groupDescriptionIntoSections,
   parseJobDescription,
   parseInlineSpans,
@@ -99,11 +101,14 @@ function BlockContent({ block }: { block: DescriptionBlock }) {
   if (block.kind === 'list') {
     return <BlockList items={block.items} />;
   }
-  return (
-    <p className="text-[15px] leading-[1.75] text-foreground/85">
-      <InlineContent spans={block.spans} />
-    </p>
-  );
+  if (block.kind === 'paragraph') {
+    return (
+      <p className="text-[15px] leading-[1.75] text-foreground/85">
+        <InlineContent spans={block.spans} />
+      </p>
+    );
+  }
+  return null;
 }
 
 function DescriptionSectionCard({ section }: { section: DescriptionSection }) {
@@ -134,10 +139,58 @@ type JobDescriptionContentProps = {
 };
 
 export function JobDescriptionContent({ description, className }: JobDescriptionContentProps) {
-  const blocks = parseJobDescription(description);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
+
+  const likelyGerman = useMemo(() => isLikelyGerman(description), [description]);
+
+  useEffect(() => {
+    setShowTranslation(false);
+    setTranslatedText(null);
+    setTranslateError(null);
+    setIsTranslating(false);
+  }, [description]);
+
+  const activeDescription =
+    showTranslation && translatedText ? translatedText : description;
+  const blocks = parseJobDescription(activeDescription);
   const sections = groupDescriptionIntoSections(blocks);
 
-  if (sections.length === 0) {
+  const handleTranslate = async () => {
+    if (translatedText) {
+      setShowTranslation(true);
+      setTranslateError(null);
+      return;
+    }
+
+    setIsTranslating(true);
+    setTranslateError(null);
+
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: description }),
+      });
+      const data = (await res.json()) as { translatedText?: string; error?: string };
+      if (!res.ok) {
+        throw new Error(data.error ?? 'Could not translate description');
+      }
+      if (!data.translatedText?.trim()) {
+        throw new Error('Translation came back empty');
+      }
+      setTranslatedText(data.translatedText);
+      setShowTranslation(true);
+    } catch (e) {
+      setTranslateError(e instanceof Error ? e.message : 'Translation failed');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  if (sections.length === 0 && !likelyGerman) {
     return (
       <p className={cn('text-sm text-muted-foreground', className)}>
         No description provided for this role.
@@ -146,10 +199,57 @@ export function JobDescriptionContent({ description, className }: JobDescription
   }
 
   return (
-    <div className={cn('w-full space-y-6', className)}>
-      {sections.map((section) => (
-        <DescriptionSectionCard key={section.id} section={section} />
-      ))}
+    <div className={cn('w-full space-y-4', className)}>
+      {likelyGerman && (
+        <div className="flex flex-wrap items-center gap-2">
+          {showTranslation && translatedText ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => setShowTranslation(false)}
+              >
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                Show original (German)
+              </Button>
+              <span className="text-xs text-muted-foreground">Showing English translation</span>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => void handleTranslate()}
+              disabled={isTranslating}
+            >
+              {isTranslating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Languages className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {isTranslating ? 'Translating…' : 'Translate to English'}
+            </Button>
+          )}
+          {translateError && (
+            <p className="w-full text-xs text-destructive" role="alert">
+              {translateError}
+            </p>
+          )}
+        </div>
+      )}
+
+      {sections.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No description provided for this role.</p>
+      ) : (
+        <div className="space-y-6">
+          {sections.map((section) => (
+            <DescriptionSectionCard key={section.id} section={section} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

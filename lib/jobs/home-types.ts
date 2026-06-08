@@ -5,7 +5,7 @@ export type JobsHomeInitialData = {
   jobs: Job[];
   totalMatching: number;
   hasMore: boolean;
-  /** DB/live slice start — used for load-more pagination after a random browse window. */
+  /** DB slice start — used for load-more pagination. */
   browseOffset: number;
   sources: SourceFacet[];
   types: string[];

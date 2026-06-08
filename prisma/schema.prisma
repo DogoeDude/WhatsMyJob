@@ -165,6 +165,10 @@ model JobListing {
   @@index([title])
   @@index([company])
   @@index([postedAt])
+  @@index([sourceId, postedAt(sort: Desc), syncedAt(sort: Desc)])
+  @@index([location])
+  @@index([type])
+  @@index([syncedAt(sort: Desc)])
   @@map("job_listing")
 }
 

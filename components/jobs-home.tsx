@@ -97,6 +97,10 @@ function filtersEqual(a: JobFilterState, b: JobFilterState): boolean {
   );
 }
 
+function browseKey(q: string, filters: JobFilterState, cat: string): string {
+  return `${q}|${cat}|${filters.sourceIds.join(',')}|${filters.type}|${filters.location}`;
+}
+
 function mergeJobs(existing: Job[], incoming: Job[]): Job[] {
   const seen = new Set(existing.map((j) => j.id));
   const out = [...existing];
@@ -142,6 +146,15 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
   /** Skip client refetch only when SSR already returned rows. */
   const skipInitialBrowseRef = useRef(!!initialData && (initialData.jobs?.length ?? 0) > 0);
   const skipInitialMetaRef = useRef(initialData?.metaLoaded ?? false);
+  const hydratedBrowseKeyRef = useRef<string | null>(
+    initialData && (initialData.jobs?.length ?? 0) > 0
+      ? browseKey('', defaultFilters, ALL_CATEGORY_ID)
+      : null
+  );
+  const hydratedMetaKeyRef = useRef<string | null>(
+    initialData?.metaLoaded ? browseKey('', defaultFilters, ALL_CATEGORY_ID) : null
+  );
+  const sessionExtendedRef = useRef(false);
   /** After a manual refresh, block browse effect from replacing live results with DB. */
   const liveListLockRef = useRef(false);
   const fetchJobsRef = useRef<
@@ -223,11 +236,11 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
         const limit = browseJobLimit(!!session, trimmed);
         const params = buildJobsSearchParams(q, filters, cat, offset, limit, {
           reload,
-          jobsOnly: !append && !reload,
+          jobsOnly: !reload,
         });
 
         const res = await fetch(`/api/jobs?${params}`, {
-          cache: reload || !append ? 'no-store' : 'default',
+          cache: reload ? 'no-store' : 'default',
           signal: abortRef.current?.signal,
         });
         const data = (await res.json()) as JobsResponse;
@@ -252,6 +265,17 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
         }
         if (!append) {
           setListVersion((v) => v + 1);
+          if (data.sources) setSourceFacets(data.sources);
+          if (data.types) {
+            setJobTypes(
+              Array.isArray(data.types)
+                ? data.types.filter((t): t is string => typeof t === 'string')
+                : []
+            );
+          }
+          if (data.locationSuggestions) {
+            setLocationSuggestions(data.locationSuggestions);
+          }
           const providerNote = formatProviderErrors(data.providerErrors);
           const baseMessage =
             data.message ??
@@ -336,17 +360,21 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
   useEffect(() => {
     if (sessionPending) return;
 
+    const metaKey = browseKey(searchQuery, debouncedFilters, category);
+
     if (skipInitialMetaRef.current) {
       const isDefault =
         searchQuery === '' &&
         category === ALL_CATEGORY_ID &&
         filtersEqual(debouncedFilters, defaultFilters);
+      skipInitialMetaRef.current = false;
       if (isDefault) {
-        skipInitialMetaRef.current = false;
+        hydratedMetaKeyRef.current = metaKey;
         return;
       }
-      skipInitialMetaRef.current = false;
     }
+
+    if (hydratedMetaKeyRef.current === metaKey) return;
 
     const schedule =
       typeof requestIdleCallback !== 'undefined'
@@ -360,15 +388,24 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
           };
 
     return schedule(() => {
-      void fetchJobMeta(searchQuery, debouncedFilters, category);
+      void fetchJobMeta(searchQuery, debouncedFilters, category).then(() => {
+        hydratedMetaKeyRef.current = metaKey;
+      });
     });
   }, [searchQuery, debouncedFilters, category, sessionPending, fetchJobMeta]);
 
   const sessionUserId = session?.user?.id ?? null;
+
+  useEffect(() => {
+    if (!sessionUserId) {
+      sessionExtendedRef.current = false;
+    }
+  }, [sessionUserId]);
+
   const prevBrowseKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const key = `${searchQuery}|${category}|${debouncedFilters.sourceIds.join(',')}|${debouncedFilters.type}|${debouncedFilters.location}`;
+    const key = browseKey(searchQuery, debouncedFilters, category);
     if (prevBrowseKeyRef.current === null) {
       prevBrowseKeyRef.current = key;
       return;
@@ -382,20 +419,40 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
     if (sessionPending) return;
     if (refreshInFlightRef.current) return;
 
+    const key = browseKey(searchQuery, debouncedFilters, category);
     const isDefaultBrowse =
       searchQuery === '' &&
       category === ALL_CATEGORY_ID &&
       filtersEqual(debouncedFilters, defaultFilters);
 
-    if (skipInitialBrowseRef.current && isDefaultBrowse) {
-      skipInitialBrowseRef.current = false;
-      return;
-    }
-
     if (liveListLockRef.current && isDefaultBrowse) {
       return;
     }
 
+    // Guest SSR already hydrated — extend list on sign-in without refetching from zero.
+    if (
+      session &&
+      jobsCountRef.current > 0 &&
+      jobsCountRef.current <= GUEST_JOB_LIMIT &&
+      isDefaultBrowse &&
+      !sessionExtendedRef.current
+    ) {
+      sessionExtendedRef.current = true;
+      void fetchJobsRef.current(searchQuery, debouncedFilters, category, jobsCountRef.current, true);
+      return;
+    }
+
+    if (skipInitialBrowseRef.current && isDefaultBrowse) {
+      skipInitialBrowseRef.current = false;
+      hydratedBrowseKeyRef.current = key;
+      return;
+    }
+
+    if (hydratedBrowseKeyRef.current === key) {
+      return;
+    }
+
+    hydratedBrowseKeyRef.current = key;
     void fetchJobsRef.current(searchQuery, debouncedFilters, category, 0, false);
   }, [searchQuery, debouncedFilters, category, sessionUserId, sessionPending]);
 
@@ -534,7 +591,6 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
     onRefresh: () => {
       liveListLockRef.current = false;
       void fetchJobs(searchQuery, debouncedFilters, category, 0, false, true);
-      void fetchJobMeta(searchQuery, debouncedFilters, category, true);
     },
     isLoading,
     isRefreshing,

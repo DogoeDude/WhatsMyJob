@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma';
-import { isPersistedJobId } from '@/lib/jobs/constants';
 import { fetchLiveJobs } from '@/lib/jobs/live-fetch';
 import { resolveJobLogoUrl } from '@/lib/jobs/resolve-logo';
 import type { Job } from '@/lib/jobs/types';
@@ -157,35 +156,10 @@ export async function enrichJobsWithLogos(
     }
   }
 
-  void backfillLogosToDatabase(
-    result.filter(
-      (j) =>
-        isPersistedJobId(j.id) &&
-        j.logoUrl &&
-        !j.logoUrl.includes('ui-avatars.com') &&
-        !j.logoUrl.includes('google.com/s2/favicons')
-    )
-  );
-
   return result.map((job) => ({
     ...job,
     logoUrl: resolveJobLogoUrl(job.company, job.logoUrl),
   }));
-}
-
-/** Save discovered logos on synced rows so the next load can skip the live API pass. */
-async function backfillLogosToDatabase(jobs: Job[]) {
-  const updates = jobs.filter((j) => j.logoUrl && isPersistedJobId(j.id));
-  if (updates.length === 0) return;
-
-  await prisma.$transaction(
-    updates.map((job) =>
-      prisma.jobListing.updateMany({
-        where: { id: job.id, logoUrl: null },
-        data: { logoUrl: job.logoUrl! },
-      })
-    )
-  );
 }
 
 export function clearLogoCache() {

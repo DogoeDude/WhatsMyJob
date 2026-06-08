@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/api-auth';
-import { syncAllJobProviders, syncJobProvider } from '@/lib/jobs/sync';
+import { invalidateJobsCaches, syncAllJobProviders, syncJobProvider } from '@/lib/jobs/sync';
 import { getActiveProviders } from '@/lib/jobs/providers';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
 
     if (sourceId) {
       const result = await syncJobProvider(sourceId);
+      invalidateJobsCaches();
       return NextResponse.json({ ok: true, results: { [sourceId]: result } });
     }
 

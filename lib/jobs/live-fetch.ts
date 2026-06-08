@@ -3,7 +3,7 @@ import { getSourceMeta } from '@/lib/jobs/sources-catalog';
 import type { Job, NormalizedJobInput } from '@/lib/jobs/types';
 import { formatPostedDate } from '@/lib/jobs/utils';
 
-const PROVIDER_TIMEOUT_MS = 12_000;
+const PROVIDER_TIMEOUT_MS = 8_000;
 
 function normalizedToJob(
   input: NormalizedJobInput,
@@ -93,7 +93,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-/** Fetch from configured public APIs (no database). Logos come from each provider response. */
+/** Fetch from configured public APIs (no database). Returns partial results on slow boards. */
 export async function fetchLiveJobs(limit = 300): Promise<{
   jobs: Job[];
   providerErrors: Record<string, string>;
@@ -101,6 +101,7 @@ export async function fetchLiveJobs(limit = 300): Promise<{
   const providers = getActiveProviders();
   const providerErrors: Record<string, string> = {};
   const merged: Job[] = [];
+  const target = Math.max(limit, 60);
 
   const results = await Promise.allSettled(
     providers.map(async (provider) => {
@@ -125,6 +126,6 @@ export async function fetchLiveJobs(limit = 300): Promise<{
     }
   });
 
-  const jobs = interleaveJobsBySource(dedupeJobs(merged)).slice(0, limit);
+  const jobs = interleaveJobsBySource(dedupeJobs(merged)).slice(0, target);
   return { jobs, providerErrors };
 }

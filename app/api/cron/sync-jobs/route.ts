@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { syncJobsCatalog } from '@/lib/jobs/catalog-sync';
+import { syncAllJobProviders } from '@/lib/jobs/sync';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await syncJobsCatalog({ force: true });
-    return NextResponse.json({ ok: true, ...result });
+    const results = await syncAllJobProviders();
+    return NextResponse.json({ ok: true, results });
   } catch (err) {
     console.error('[GET /api/cron/sync-jobs]', err);
     const message = err instanceof Error ? err.message : 'Cron sync failed';

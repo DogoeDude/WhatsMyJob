@@ -7,40 +7,16 @@ import {
   type JobListFilters,
   type SourceFacet,
 } from '@/lib/jobs/filters';
+import { getJobsFilterMetaCached } from '@/lib/jobs/filter-meta-cache';
 import { enrichJobsWithLogos, clearLogoCache } from '@/lib/jobs/enrich-logos';
 import { fetchLiveJobs, interleaveJobsBySource } from '@/lib/jobs/live-fetch';
 import { getTopLocationsFromJobs } from '@/lib/jobs/filter-suggestions';
 import { dedupeStrings, sortJobsByRecency } from '@/lib/jobs/utils';
 import {
-  countJobListings,
-  getDistinctJobTypes,
   getJobStats,
-  getSourceFacetsFromDb,
-  getTopLocationsFromDb,
   hasAnyJobListings,
   searchJobListings,
 } from '@/lib/jobs/query';
-import { JOB_SOURCES_CATALOG } from '@/lib/jobs/sources-catalog';
-import type { Job } from '@/lib/jobs/types';
-
-function mergeFacets(
-  dbFacets: { sourceId: string; count: number }[],
-  liveJobs: Job[]
-): SourceFacet[] {
-  const counts = new Map<string, number>();
-  for (const f of dbFacets) counts.set(f.sourceId, f.count);
-  for (const job of liveJobs) {
-    if (!job.sourceId) continue;
-    counts.set(job.sourceId, (counts.get(job.sourceId) ?? 0) + 1);
-  }
-
-  return JOB_SOURCES_CATALOG.map((meta) => ({
-    id: meta.id,
-    name: meta.name,
-    website: meta.website,
-    count: counts.get(meta.id) ?? 0,
-  })).filter((f) => f.count > 0);
-}
 
 export async function getAppJobStats() {
   try {
@@ -76,19 +52,7 @@ export type GetJobsOptions = {
 };
 
 export const getJobsFilterMeta = cache(async function getJobsFilterMeta(filters: JobListFilters) {
-  const [facets, types, totalMatching, locationSuggestions] = await Promise.all([
-    getSourceFacetsFromDb(filters),
-    getDistinctJobTypes(filters),
-    countJobListings(filters),
-    getTopLocationsFromDb(filters),
-  ]);
-
-  return {
-    sources: mergeSourceFacetsWithSelection(mergeFacets(facets, []), filters.sourceIds),
-    types,
-    totalMatching,
-    locationSuggestions,
-  };
+  return getJobsFilterMetaCached(filters);
 });
 
 export async function getJobsForApp(
@@ -120,9 +84,7 @@ export async function getJobsForApp(
           totalMatching = meta.totalMatching;
           hasMore = skip + enrichedJobs.length < totalMatching;
         } else {
-          const total = await countJobListings(filters);
-          totalMatching = total;
-          hasMore = skip + enrichedJobs.length < total;
+          hasMore = enrichedJobs.length >= limit;
         }
 
         return {
@@ -150,10 +112,10 @@ export async function getJobsForApp(
     filters.type !== '' ||
     filters.location !== '';
   const livePoolSize = refresh
-    ? Math.min(150, Math.max(limit * 4, 60))
+    ? Math.min(120, Math.max(limit * 3, 50))
     : filters.sourceIds.length > 0 || hasNonSourceFilters
-      ? 400
-      : 250;
+      ? 200
+      : 150;
   const { jobs: livePool, providerErrors } = await fetchLiveJobs(livePoolSize);
   const facetBase = applyJobFilters(livePool, { ...filters, sourceIds: [] });
   const sources = mergeSourceFacetsWithSelection(
