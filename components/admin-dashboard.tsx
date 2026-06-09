@@ -106,7 +106,7 @@ export function AdminDashboard() {
         if (row.error) return `${id}: ${row.error}`;
         return `${id}: +${row.added ?? 0} new, ${row.updated ?? 0} updated`;
       });
-      setMessage(parts.join(' · ') || 'Sync complete');
+      setMessage(parts.join('\n') || 'Sync complete');
       await load();
     } catch {
       setMessage('Sync request failed');
@@ -128,22 +128,26 @@ export function AdminDashboard() {
         title="Admin"
         subtitle="Sync job listings from configured APIs into your database."
         action={
-          <Button onClick={() => runSync()} disabled={syncingAll || syncingId !== null}>
+          <Button
+            size="lg"
+            onClick={() => runSync()}
+            disabled={syncingAll || syncingId !== null}
+          >
             {syncingAll ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            Sync all sources
+            Sync all
           </Button>
         }
       />
 
       <PageContent>
         {message && (
-          <p className="mb-6 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-foreground">
-            {message}
-          </p>
+          <div className="mb-6 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-foreground">
+            <p className="whitespace-pre-wrap break-words">{message}</p>
+          </div>
         )}
 
         <div className="mb-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -171,6 +175,43 @@ export function AdminDashboard() {
         </div>
 
         <SectionCard title="Job sources (APIs)" className="mb-10">
+          <div className="mb-6 flex flex-col gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="min-w-0">
+              <p className="font-medium text-foreground">Sync all job boards</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pull listings from every configured API into your database. This can take a few
+                minutes.
+                {totalSources > 0 && (
+                  <>
+                    {' '}
+                    <span className="font-medium text-foreground">
+                      {activeSources} of {totalSources}
+                    </span>{' '}
+                    sources ready.
+                  </>
+                )}
+              </p>
+            </div>
+            <Button
+              size="lg"
+              className="w-full shrink-0 sm:w-auto"
+              onClick={() => runSync()}
+              disabled={syncingAll || syncingId !== null || isLoading}
+            >
+              {syncingAll ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Syncing all…
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Sync all sources
+                </>
+              )}
+            </Button>
+          </div>
+
           <p className="mb-6 text-sm text-muted-foreground">
             We use official public APIs—not scraping—so listings stay reliable and within each
             provider&apos;s terms. Add{' '}
