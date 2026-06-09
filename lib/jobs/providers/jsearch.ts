@@ -30,6 +30,7 @@ type JSearchJob = {
 type JSearchResponse = {
   status?: string;
   data?: JSearchJob[];
+  error?: { message?: string; code?: number };
 };
 
 type JSearchMarket = {
@@ -81,7 +82,7 @@ function parseMarkets(): JSearchMarket[] {
     .filter(Boolean);
 
   const baseQuery = process.env.JSEARCH_QUERY?.trim() || 'developer jobs';
-  const labels: Record<string, string> = {
+  const locationByCountry: Record<string, string> = {
     ph: 'Philippines',
     us: 'United States',
     gb: 'United Kingdom',
@@ -92,7 +93,7 @@ function parseMarkets(): JSearchMarket[] {
 
   return countries.map((country) => ({
     country,
-    query: `${baseQuery} in ${labels[country] ?? country.toUpperCase()}`,
+    query: `${baseQuery} in ${locationByCountry[country] ?? country.toUpperCase()}`,
   }));
 }
 
@@ -121,6 +122,12 @@ function mapJob(job: JSearchJob, marketCountry: string): NormalizedJobInput {
   ];
   const benefits = [...(highlights.Benefits ?? []), ...(job.job_benefits ?? [])];
 
+  let postedAt: Date | null = null;
+  if (job.job_posted_at_datetime_utc) {
+    const parsed = new Date(job.job_posted_at_datetime_utc);
+    postedAt = Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
   return {
     externalId: `${marketCountry}-${job.job_id}`,
     title: job.job_title,
@@ -134,21 +141,16 @@ function mapJob(job: JSearchJob, marketCountry: string): NormalizedJobInput {
     benefits,
     applyUrl: job.job_apply_link ?? job.job_google_link,
     logoUrl: sanitizeLogoUrl(job.employer_logo),
-    postedAt: job.job_posted_at_datetime_utc
-      ? new Date(job.job_posted_at_datetime_utc)
-      : null,
+    postedAt,
   };
 }
 
-async function fetchMarket(
-  config: { url: string; headers: Record<string, string> },
-  market: JSearchMarket
-): Promise<NormalizedJobInput[]> {
+function searchUrl(baseUrl: string, market: JSearchMarket): string {
   const params = new URLSearchParams({
     query: market.query,
     page: '1',
     num_pages: process.env.JSEARCH_NUM_PAGES?.trim() || '1',
-    date_posted: process.env.JSEARCH_DATE_POSTED?.trim() || 'month',
+    date_posted: process.env.JSEARCH_DATE_POSTED?.trim() || 'all',
     country: market.country,
   });
 
@@ -156,20 +158,63 @@ async function fetchMarket(
     params.set('work_from_home', 'true');
   }
 
-  const res = await fetch(`${config.url}?${params}`, {
+  return `${baseUrl}?${params}`;
+}
+
+async function fetchWithRetry(
+  url: string,
+  headers: Record<string, string>
+): Promise<Response> {
+  let res = await fetch(url, {
     next: { revalidate: 0 },
-    headers: {
-      Accept: 'application/json',
-      ...config.headers,
-    },
+    headers: { Accept: 'application/json', ...headers },
   });
 
-  if (!res.ok) {
-    throw new Error(`JSearch API error (${market.country}): ${res.status}`);
+  if (res.status === 429) {
+    await new Promise((r) => setTimeout(r, 2000));
+    res = await fetch(url, {
+      next: { revalidate: 0 },
+      headers: { Accept: 'application/json', ...headers },
+    });
   }
 
-  const data = (await res.json()) as JSearchResponse;
-  return (data.data ?? []).map((job) => mapJob(job, market.country));
+  return res;
+}
+
+async function fetchMarket(
+  config: { url: string; headers: Record<string, string> },
+  market: JSearchMarket
+): Promise<NormalizedJobInput[]> {
+  const urls = [searchUrl(config.url, market)];
+  if (config.url.includes('openwebninja.com')) {
+    urls.push(searchUrl(config.url.replace('/search', '/search-v2'), market));
+  }
+
+  let lastError = '';
+
+  for (const url of urls) {
+    const res = await fetchWithRetry(url, config.headers);
+    const data = (await res.json()) as JSearchResponse;
+
+    if (data.status === 'ERROR' || data.error) {
+      lastError = data.error?.message ?? 'JSearch API error';
+      if (res.status === 429 || data.error?.code === 429) {
+        throw new Error(`JSearch rate limit (${market.country}) — try again in a few minutes`);
+      }
+      continue;
+    }
+
+    if (!res.ok) {
+      lastError = `HTTP ${res.status}`;
+      continue;
+    }
+
+    const jobs = (data.data ?? []).map((job) => mapJob(job, market.country));
+    if (jobs.length > 0) return jobs;
+    lastError = 'empty results';
+  }
+
+  throw new Error(lastError || `JSearch returned no jobs for ${market.country}`);
 }
 
 export const jsearchProvider: JobProvider = {
@@ -182,27 +227,35 @@ export const jsearchProvider: JobProvider = {
       throw new Error('JSearch API key not configured (JSEARCH_API_KEY or RAPIDAPI_KEY)');
     }
 
-    const markets = parseMarkets();
+    const parsed = parseMarkets();
+    const markets = parsed.length > 0 ? parsed : DEFAULT_MARKETS;
     const merged: NormalizedJobInput[] = [];
     const seen = new Set<string>();
+    const marketErrors: string[] = [];
 
-    for (const market of markets.length > 0 ? markets : DEFAULT_MARKETS) {
+    for (let i = 0; i < markets.length; i++) {
+      const market = markets[i];
+      if (i > 0) {
+        await new Promise((r) => setTimeout(r, 1500));
+      }
       try {
         const jobs = await fetchMarket(config, market);
         for (const job of jobs) {
-          const key = `${job.title.toLowerCase()}|${job.company.toLowerCase()}|${job.location.toLowerCase()}`;
+          const key = `${job.externalId}|${job.title.toLowerCase()}|${job.company.toLowerCase()}`;
           if (seen.has(key)) continue;
           seen.add(key);
           merged.push(job);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        marketErrors.push(`${market.country}: ${msg}`);
         console.warn(`[jsearch] ${market.country}: ${msg}`);
       }
     }
 
     if (merged.length === 0) {
-      throw new Error('JSearch returned no jobs for configured markets');
+      const detail = marketErrors.length > 0 ? ` (${marketErrors.join('; ')})` : '';
+      throw new Error(`JSearch returned no jobs for configured markets${detail}`);
     }
 
     return merged;

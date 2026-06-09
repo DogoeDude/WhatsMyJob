@@ -7,15 +7,69 @@ type JobicyJob = {
   jobTitle: string;
   companyName: string;
   companyLogo?: string;
-  jobType?: string;
+  /** API returns an array, e.g. ["Full-Time"] */
+  jobType?: string | string[];
   jobGeo?: string;
   jobDescription?: string;
   pubDate?: string;
   annualSalaryMin?: number;
   annualSalaryMax?: number;
+  salaryMin?: number;
+  salaryMax?: number;
   salaryCurrency?: string;
+  salaryPeriod?: string;
   tags?: string[];
+  jobIndustry?: string[];
 };
+
+function formatJobType(jobType: string | string[] | undefined): string {
+  if (Array.isArray(jobType)) {
+    return jobType.find((t) => typeof t === 'string' && t.trim())?.trim() || 'Remote';
+  }
+  return jobType?.trim() || 'Remote';
+}
+
+function formatSalary(job: JobicyJob): string {
+  const min = job.salaryMin ?? job.annualSalaryMin;
+  const max = job.salaryMax ?? job.annualSalaryMax;
+  const currency = job.salaryCurrency?.trim();
+
+  if (min && max && currency) {
+    const period = job.salaryPeriod === 'yearly' ? '/yr' : '';
+    return `${currency} ${Math.round(min / 1000)}k–${Math.round(max / 1000)}k${period}`;
+  }
+  if (min && currency) {
+    return `From ${currency} ${Math.round(min / 1000)}k`;
+  }
+  return 'Not disclosed';
+}
+
+function mapJob(job: JobicyJob): NormalizedJobInput {
+  const tags = [
+    ...(Array.isArray(job.jobIndustry) ? job.jobIndustry : []),
+    ...(Array.isArray(job.tags) ? job.tags : []),
+  ].filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0);
+
+  let postedAt: Date | null = null;
+  if (job.pubDate) {
+    const parsed = new Date(job.pubDate);
+    postedAt = Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return {
+    externalId: String(job.id),
+    title: job.jobTitle?.trim() || 'Untitled role',
+    company: job.companyName?.trim() || 'Unknown company',
+    location: job.jobGeo?.trim() || 'Remote',
+    salary: formatSalary(job),
+    type: formatJobType(job.jobType),
+    description: stripHtml(job.jobDescription ?? ''),
+    tags,
+    applyUrl: job.url,
+    logoUrl: sanitizeLogoUrl(job.companyLogo),
+    postedAt,
+  };
+}
 
 export const jobicyProvider: JobProvider = {
   id: 'jobicy',
@@ -32,25 +86,10 @@ export const jobicyProvider: JobProvider = {
     const data = (await res.json()) as { jobs?: JobicyJob[] };
     const jobs = data.jobs ?? [];
 
-    return jobs.map((job): NormalizedJobInput => {
-      let salary = 'Not disclosed';
-      if (job.annualSalaryMin && job.annualSalaryMax && job.salaryCurrency) {
-        salary = `${job.salaryCurrency} ${Math.round(job.annualSalaryMin / 1000)}k–${Math.round(job.annualSalaryMax / 1000)}k`;
-      }
+    if (jobs.length === 0) {
+      throw new Error('Jobicy returned no jobs');
+    }
 
-      return {
-        externalId: String(job.id),
-        title: job.jobTitle,
-        company: job.companyName,
-        location: job.jobGeo?.trim() || 'Remote',
-        salary,
-        type: job.jobType ?? 'Remote',
-        description: stripHtml(job.jobDescription ?? ''),
-        tags: job.tags ?? [],
-        applyUrl: job.url,
-        logoUrl: sanitizeLogoUrl(job.companyLogo),
-        postedAt: job.pubDate ? new Date(job.pubDate) : null,
-      };
-    });
+    return jobs.map(mapJob);
   },
 };

@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache';
 import { invalidateHasJobsCache } from '@/lib/jobs/query';
 import { clearLogoCache } from '@/lib/jobs/enrich-logos';
 import { getActiveProviders, getProvider, jobProviders } from '@/lib/jobs/providers';
+import { sanitizeJobInput } from '@/lib/jobs/sanitize-job-input';
 import type { NormalizedJobInput, SyncProviderResult } from '@/lib/jobs/types';
 import type { Prisma } from '@prisma/client';
 
@@ -70,11 +71,12 @@ function jobPayload(job: NormalizedJobInput, logoUrl: string | null) {
 async function upsertJobs(sourceId: string, jobs: NormalizedJobInput[]) {
   if (jobs.length === 0) return { added: 0, updated: 0, total: 0 };
 
+  const safeJobs = jobs.map(sanitizeJobInput);
   let added = 0;
   let updated = 0;
 
-  for (let offset = 0; offset < jobs.length; offset += UPSERT_BATCH) {
-    const chunk = jobs.slice(offset, offset + UPSERT_BATCH);
+  for (let offset = 0; offset < safeJobs.length; offset += UPSERT_BATCH) {
+    const chunk = safeJobs.slice(offset, offset + UPSERT_BATCH);
     const externalIds = chunk.map((j) => j.externalId);
 
     const existing = await prisma.jobListing.findMany({
@@ -118,7 +120,7 @@ async function upsertJobs(sourceId: string, jobs: NormalizedJobInput[]) {
     }
   }
 
-  return { added, updated, total: jobs.length };
+  return { added, updated, total: safeJobs.length };
 }
 
 export async function syncJobProvider(sourceId: string): Promise<SyncProviderResult> {
