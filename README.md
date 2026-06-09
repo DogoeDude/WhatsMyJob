@@ -4,13 +4,13 @@
 
 ### What problem it solves
 
-Job hunting is fragmented. Remotive, RemoteOK, Adzuna, JSearch (Google for Jobs), and other feeds each have their own site and filters. WhatsMyJob **aggregates those official APIs** into a single searchable catalog, stores listings in Postgres for fast repeat visits, and still lets you **refresh from live sources** when you want the newest posts.
+Job hunting is fragmented. Remotive, RemoteOK, Workbeam, Jobs Base, Adzuna, and other feeds each have their own site and filters. WhatsMyJob **aggregates those official APIs** into a single searchable catalog, stores listings in Postgres for fast repeat visits, and still lets you **refresh from live sources** when you want the newest posts.
 
 You apply on the **original listing** (external link)—this app does not replace employer ATS portals. It helps you **find**, **compare**, and **organize** the hunt on your side.
 
 ### Who it is for
 
-- **Job seekers** browsing remote, hybrid, or on-site roles (especially useful with JSearch for Philippines and US coverage).
+- **Job seekers** browsing remote, hybrid, or on-site roles from many boards in one place.
 - **Signed-in users** who want a profile (resume, cover letter, links), an application tracker (status, notes, replies), and a consistent UI across devices.
 - **Admins** (you, on your instance) who sync provider data into Neon so the home page loads quickly for everyone.
 
@@ -399,9 +399,10 @@ Ingestion uses **official HTTP APIs** only (no HTML scraping). Implementations l
 | `jobicy` | — | `jobicy.ts` | Remote (batch size limited by API) |
 | `remoteok` | — | `remoteok.ts` | Remote |
 | `remotejobs` | — | `remotejobs-org.ts` | Paginated remote |
-| `careernest` | — | (career nest provider) | Global feed |
-| `jsearch` | `JSEARCH_API_KEY` or `RAPIDAPI_KEY` | `jsearch.ts` | Google for Jobs aggregator |
-| `reed` | `REED_API_KEY` | — | UK |
+| `careernest` | — | `careernest.ts` | Global feed |
+| `workbeam` | — | `workbeam.ts` | Free tech jobs API |
+| `jobsbase` | — | `jobsbase.ts` | Free builder/dev jobs API |
+| `reed` | `REED_API_KEY` | `reed.ts` | UK |
 | `adzuna` | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | `adzuna.ts` | US / SG / UK / EU (no PH) |
 
 Catalog metadata: `lib/jobs/sources-catalog.ts`.
@@ -413,17 +414,18 @@ Catalog metadata: `lib/jobs/sources-catalog.ts`.
 - **Refresh** — `?refresh=1` always hits live APIs; upsert happens only via sync endpoints, not on every refresh.
 - **Logos** — `lib/jobs/enrich-logos.ts`, `resolve-logo.ts`, favicon fallback, `/api/logo` proxy.
 
-### Recommended env for Philippines + US
+### Recommended env for US + regional coverage
 
 ```env
-JSEARCH_API_KEY=your_key
-JSEARCH_COUNTRIES=ph,us
+WORKBEAM_QUERY=developer
+JOBSBASE_QUERY=developer
+JOBSBASE_COUNTRIES=US,GB,SG
 ADZUNA_APP_ID=your_id
 ADZUNA_APP_KEY=your_key
 ADZUNA_COUNTRIES=us,sg
 ```
 
-Philippines-focused search relies mainly on **JSearch** (`country=ph`). Adzuna has no PH feed; `sg` adds regional listings.
+**Workbeam** and **Jobs Base** are free, fast, and need no API keys. Adzuna has no PH feed; `sg` adds regional listings.
 
 ---
 
@@ -437,12 +439,11 @@ Copy `.env.example` → `.env.local`.
 | `BETTER_AUTH_SECRET` | Yes | Session signing secret (`openssl rand -base64 32`) |
 | `BETTER_AUTH_URL` | Yes | App origin, e.g. `http://localhost:3000` |
 | `NEXT_PUBLIC_APP_URL` | Yes | Same origin for client-side auth URLs |
-| `JSEARCH_API_KEY` | No | OpenWebNinja JSearch |
-| `RAPIDAPI_KEY` | No | Alternative JSearch key |
-| `JSEARCH_QUERY` | No | Default search query |
-| `JSEARCH_COUNTRIES` | No | e.g. `ph,us` |
-| `JSEARCH_NUM_PAGES` | No | Pages per sync |
-| `JSEARCH_QUERIES` | No | Advanced: `query\|country` pairs |
+| `WORKBEAM_QUERY` | No | Workbeam search query (default `developer`) |
+| `WORKBEAM_LIMIT` | No | Max jobs per sync (default `100`) |
+| `JOBSBASE_QUERY` | No | Jobs Base search query |
+| `JOBSBASE_COUNTRIES` | No | e.g. `US,GB,SG` |
+| `JOBSBASE_PAGES` | No | Pages per country (default `2`) |
 | `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | No | Adzuna API |
 | `ADZUNA_COUNTRIES` | No | e.g. `us,sg` |
 | `ADZUNA_DEFAULT_WHAT` / `ADZUNA_DEFAULT_WHERE` | No | Default Adzuna search |
@@ -481,7 +482,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-> **Tip:** Remotive, Arbeitnow, Jobicy, RemoteOK, RemoteJobs.org, and Career Nest work without API keys. Add JSearch for Philippines + US coverage.
+> **Tip:** Remotive, Arbeitnow, Jobicy, RemoteOK, RemoteJobs.org, Career Nest, Workbeam, and Jobs Base work without API keys.
 
 ### Admin access
 

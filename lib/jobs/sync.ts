@@ -14,7 +14,8 @@ const SOURCE_META: Record<string, { name: string; kind: 'api' | 'api_key' }> = {
   remoteok: { name: 'RemoteOK', kind: 'api' },
   remotejobs: { name: 'RemoteJobs.org', kind: 'api' },
   careernest: { name: 'Career Nest', kind: 'api' },
-  jsearch: { name: 'JSearch', kind: 'api_key' },
+  workbeam: { name: 'Workbeam', kind: 'api' },
+  jobsbase: { name: 'Jobs Base', kind: 'api' },
   reed: { name: 'Reed.co.uk', kind: 'api_key' },
   adzuna: { name: 'Adzuna', kind: 'api_key' },
 };
@@ -132,6 +133,7 @@ export async function syncJobProvider(sourceId: string): Promise<SyncProviderRes
     throw new Error(`${provider.name} is not configured (missing API keys).`);
   }
 
+  await ensureJobSources();
   const jobs = await provider.fetchJobs();
   const { added, updated, total } = await upsertJobs(sourceId, jobs);
 

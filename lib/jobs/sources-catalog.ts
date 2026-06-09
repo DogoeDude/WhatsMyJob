@@ -44,10 +44,16 @@ export const JOB_SOURCES_CATALOG: JobSourceMeta[] = [
     description: 'Global job feed',
   },
   {
-    id: 'jsearch',
-    name: 'JSearch',
-    website: 'https://www.openwebninja.com/api/jsearch',
-    description: 'Google for Jobs — US, Philippines, and more',
+    id: 'workbeam',
+    name: 'Workbeam',
+    website: 'https://workbeamhq.com',
+    description: 'Free tech jobs API (no key)',
+  },
+  {
+    id: 'jobsbase',
+    name: 'Jobs Base',
+    website: 'https://jobsbase.io',
+    description: 'Free builder/tech jobs API (no key)',
   },
   {
     id: 'reed',
