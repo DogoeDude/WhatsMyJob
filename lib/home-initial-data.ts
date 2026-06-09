@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { getCachedSession } from '@/lib/auth-session';
+import { isCatalogStale } from '@/lib/jobs/catalog-freshness';
 import { browseJobLimit } from '@/lib/jobs/browse-limit';
 import { DEFAULT_JOB_LIST_FILTERS } from '@/lib/jobs/default-filters';
 import { getJobsFilterMeta, getJobsForApp } from '@/lib/jobs/service';
@@ -9,6 +10,7 @@ import type { JobsHomeInitialData } from '@/lib/jobs/home-types';
 export const loadHomeInitialData = cache(async (): Promise<JobsHomeInitialData | undefined> => {
   const session = await getCachedSession();
   const limit = browseJobLimit(!!session);
+  const catalogStale = await isCatalogStale();
 
   try {
     const [result, meta] = await Promise.all([
@@ -32,6 +34,7 @@ export const loadHomeInitialData = cache(async (): Promise<JobsHomeInitialData |
       mode: result.mode,
       message: result.message,
       metaLoaded: meta !== null,
+      catalogStale,
     };
   } catch (err) {
     console.error('[Home] initial jobs load', err);

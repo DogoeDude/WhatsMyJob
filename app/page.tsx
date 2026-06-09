@@ -1,5 +1,7 @@
 import { Suspense } from 'react';
 import { JobsHome } from '@/components/jobs-home';
+
+export const dynamic = 'force-dynamic';
 import { JobsListLoading } from '@/components/jobs-list-skeleton';
 import { PageContent, PageShell } from '@/components/page-shell';
 import { loadHomeInitialData } from '@/lib/home-initial-data';

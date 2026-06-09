@@ -1,4 +1,5 @@
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
+import { envInt } from '@/lib/jobs/sync-config';
 import { sanitizeLogoUrl, stripHtml } from '@/lib/jobs/utils';
 
 type RemoteJobsOrgItem = {
@@ -20,9 +21,11 @@ export const remoteJobsOrgProvider: JobProvider = {
   async fetchJobs() {
     const all: NormalizedJobInput[] = [];
 
-    for (let offset = 0; offset < 150; offset += 50) {
+    const maxJobs = envInt('REMOTEJOBS_MAX', 300, 500);
+    const pageSize = 50;
+    for (let offset = 0; offset < maxJobs; offset += pageSize) {
       const res = await fetch(
-        `https://remotejobs.org/api/v1/jobs?limit=50&offset=${offset}`,
+        `https://remotejobs.org/api/v1/jobs?limit=${pageSize}&offset=${offset}`,
         { headers: { Accept: 'application/json' }, cache: 'no-store' }
       );
 
@@ -46,7 +49,7 @@ export const remoteJobsOrgProvider: JobProvider = {
         });
       }
 
-      if (batch.length < 50) break;
+      if (batch.length < pageSize) break;
     }
 
     return all;

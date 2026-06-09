@@ -9,7 +9,10 @@ import {
 } from '@/lib/jobs/filters';
 import { getJobsFilterMetaCached } from '@/lib/jobs/filter-meta-cache';
 import { enrichJobsWithLogos, clearLogoCache } from '@/lib/jobs/enrich-logos';
-import { fetchLiveJobs, interleaveJobsBySource } from '@/lib/jobs/live-fetch';
+import { isCatalogStale } from '@/lib/jobs/catalog-freshness';
+import { isDefaultBrowseFilters } from '@/lib/jobs/default-filters';
+import { fetchLiveJobs } from '@/lib/jobs/live-fetch';
+import { scheduleCatalogSyncIfStale } from '@/lib/jobs/stale-sync';
 import { getTopLocationsFromJobs } from '@/lib/jobs/filter-suggestions';
 import { dedupeStrings, sortJobsByRecency } from '@/lib/jobs/utils';
 import {
@@ -61,8 +64,15 @@ export async function getJobsForApp(
   offset = 0,
   options?: GetJobsOptions
 ) {
-  const refresh = options?.refresh ?? options?.forceLive ?? false;
+  const explicitRefresh = options?.refresh ?? options?.forceLive ?? false;
   const includeMeta = options?.includeMeta ?? true;
+  const defaultBrowse = isDefaultBrowseFilters(filters);
+  const catalogStale = defaultBrowse ? await isCatalogStale() : false;
+  const refresh = explicitRefresh || (catalogStale && defaultBrowse);
+
+  if (catalogStale && defaultBrowse) {
+    scheduleCatalogSyncIfStale();
+  }
 
   if (!refresh) {
     try {
@@ -123,11 +133,7 @@ export async function getJobsForApp(
     filters.sourceIds
   );
   const filtered = applyJobFilters(livePool, filters);
-  const mixed = refresh
-    ? sortJobsByRecency(filtered)
-    : filters.sourceIds.length === 0 && !filters.search.trim()
-      ? interleaveJobsBySource(filtered)
-      : sortJobsByRecency(filtered);
+  const mixed = sortJobsByRecency(filtered);
   const totalMatching = mixed.length;
   const sliceStart = offset;
   const page = mixed.slice(sliceStart, sliceStart + limit);
@@ -188,7 +194,9 @@ export async function getJobsForApp(
   if (jobs.length === 0) {
     message = 'No jobs match your filters. Try another source or clear filters.';
   } else if (refresh) {
-    message = 'Fetched latest jobs from job board APIs (newest first).';
+    message = catalogStale && !explicitRefresh
+      ? 'Your saved catalog was out of date — showing the latest jobs from job boards (newest first). A background sync is updating the database.'
+      : 'Fetched latest jobs from job board APIs (newest first).';
   } else {
     try {
       if (!(await hasAnyJobListings())) {

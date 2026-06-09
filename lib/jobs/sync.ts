@@ -158,6 +158,7 @@ export async function syncJobProvider(sourceId: string): Promise<SyncProviderRes
     },
   });
 
+  invalidateJobsCaches();
   return { added, updated, total };
 }
 

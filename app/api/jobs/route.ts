@@ -39,9 +39,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': refresh
-            ? 'no-store, max-age=0'
-            : 'private, max-age=30, stale-while-revalidate=120',
+          'Cache-Control': refresh ? 'no-store, max-age=0' : 'private, no-cache, max-age=0',
         },
       }
     );

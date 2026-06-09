@@ -1,7 +1,7 @@
 import { getActiveProviders } from '@/lib/jobs/providers';
 import { getSourceMeta } from '@/lib/jobs/sources-catalog';
 import type { Job, NormalizedJobInput } from '@/lib/jobs/types';
-import { formatPostedDate } from '@/lib/jobs/utils';
+import { formatPostedDate, sortJobsByRecency } from '@/lib/jobs/utils';
 
 const PROVIDER_TIMEOUT_MS = 8_000;
 
@@ -126,6 +126,6 @@ export async function fetchLiveJobs(limit = 300): Promise<{
     }
   });
 
-  const jobs = interleaveJobsBySource(dedupeJobs(merged)).slice(0, target);
+  const jobs = sortJobsByRecency(dedupeJobs(merged)).slice(0, target);
   return { jobs, providerErrors };
 }

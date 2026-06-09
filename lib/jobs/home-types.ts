@@ -14,4 +14,6 @@ export type JobsHomeInitialData = {
   message?: string;
   /** SSR already loaded sidebar facets — skip immediate client refetch. */
   metaLoaded?: boolean;
+  /** Saved catalog is older than the stale threshold — client may live-refresh. */
+  catalogStale?: boolean;
 };

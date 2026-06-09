@@ -1,4 +1,5 @@
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
+import { envInt } from '@/lib/jobs/sync-config';
 import { sanitizeLogoUrl, stripHtml } from '@/lib/jobs/utils';
 
 type JobicyJob = {
@@ -76,7 +77,8 @@ export const jobicyProvider: JobProvider = {
   name: 'Jobicy',
   isConfigured: () => true,
   async fetchJobs() {
-    const res = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50', {
+    const count = envInt('JOBICY_COUNT', 100, 150);
+    const res = await fetch(`https://jobicy.com/api/v2/remote-jobs?count=${count}`, {
       headers: { Accept: 'application/json' },
       cache: 'no-store',
     });

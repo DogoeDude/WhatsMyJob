@@ -8,3 +8,13 @@ export const DEFAULT_JOB_LIST_FILTERS: JobListFilters = {
   location: '',
   category: ALL_CATEGORY_ID,
 };
+
+export function isDefaultBrowseFilters(filters: JobListFilters): boolean {
+  return (
+    filters.search.trim() === '' &&
+    filters.category === ALL_CATEGORY_ID &&
+    filters.sourceIds.length === 0 &&
+    !filters.type &&
+    !filters.location
+  );
+}

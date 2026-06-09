@@ -1,4 +1,5 @@
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
+import { envInt } from '@/lib/jobs/sync-config';
 
 type JobsBaseJob = {
   id: string;
@@ -104,11 +105,11 @@ export const jobsbaseProvider: JobProvider = {
   isConfigured: () => true,
   async fetchJobs() {
     const query = process.env.JOBSBASE_QUERY?.trim() || 'developer';
-    const countries = (process.env.JOBSBASE_COUNTRIES?.trim() || 'US,GB,SG')
+    const countries = (process.env.JOBSBASE_COUNTRIES?.trim() || 'US,GB,SG,CA,AU,DE')
       .split(',')
       .map((c) => c.trim().toUpperCase())
       .filter(Boolean);
-    const maxPages = Number(process.env.JOBSBASE_PAGES?.trim() || '2');
+    const maxPages = envInt('JOBSBASE_PAGES', 4, 10);
 
     const batches = await Promise.all(
       countries.map((country) => fetchCountryJobs(country, query, maxPages))

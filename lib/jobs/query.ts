@@ -108,7 +108,11 @@ export async function searchJobListings(
   const rows = await prisma.jobListing.findMany({
     where: buildWhere(filters),
     select: listListingSelect,
-    orderBy: [{ postedAt: 'desc' }, { syncedAt: 'desc' }],
+    orderBy: [
+      { postedAt: { sort: 'desc', nulls: 'last' } },
+      { syncedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
     skip: offset,
     take: limit,
   });

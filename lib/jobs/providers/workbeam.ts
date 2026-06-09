@@ -1,5 +1,5 @@
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
-import { stripHtml } from '@/lib/jobs/utils';
+import { envInt } from '@/lib/jobs/sync-config';
 
 type WorkbeamJob = {
   slug: string;
@@ -20,7 +20,6 @@ type WorkbeamJob = {
 
 type WorkbeamResponse = {
   jobs?: WorkbeamJob[];
-  count?: number;
 };
 
 function formatSalary(job: WorkbeamJob): string {
@@ -65,26 +64,45 @@ export const workbeamProvider: JobProvider = {
   isConfigured: () => true,
   async fetchJobs() {
     const query = process.env.WORKBEAM_QUERY?.trim() || 'developer';
-    const limit = process.env.WORKBEAM_LIMIT?.trim() || '100';
-    const params = new URLSearchParams({ q: query, limit, page: '1' });
-
+    const limit = envInt('WORKBEAM_LIMIT', 100, 100);
+    const pages = envInt('WORKBEAM_PAGES', 3, 10);
     const remote = process.env.WORKBEAM_REMOTE?.trim();
-    if (remote) params.set('remote', remote);
-
     const category = process.env.WORKBEAM_CATEGORY?.trim();
-    if (category) params.set('category', category);
 
-    const res = await fetch(`https://workbeamhq.com/api/v1/jobs?${params}`, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    });
+    const merged: NormalizedJobInput[] = [];
+    const seen = new Set<string>();
 
-    if (!res.ok) throw new Error(`Workbeam API error: ${res.status}`);
+    for (let page = 1; page <= pages; page++) {
+      const params = new URLSearchParams({
+        q: query,
+        limit: String(limit),
+        page: String(page),
+      });
+      if (remote) params.set('remote', remote);
+      if (category) params.set('category', category);
 
-    const data = (await res.json()) as WorkbeamResponse;
-    const jobs = data.jobs ?? [];
-    if (jobs.length === 0) throw new Error('Workbeam returned no jobs');
+      const res = await fetch(`https://workbeamhq.com/api/v1/jobs?${params}`, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
 
-    return jobs.map(mapJob);
+      if (!res.ok) throw new Error(`Workbeam API error: ${res.status}`);
+
+      const data = (await res.json()) as WorkbeamResponse;
+      const jobs = data.jobs ?? [];
+      if (jobs.length === 0) break;
+
+      for (const job of jobs) {
+        const mapped = mapJob(job);
+        if (seen.has(mapped.externalId)) continue;
+        seen.add(mapped.externalId);
+        merged.push(mapped);
+      }
+
+      if (jobs.length < limit) break;
+    }
+
+    if (merged.length === 0) throw new Error('Workbeam returned no jobs');
+    return merged;
   },
 };

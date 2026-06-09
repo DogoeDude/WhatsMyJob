@@ -1,4 +1,5 @@
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
+import { envInt } from '@/lib/jobs/sync-config';
 import { stripHtml } from '@/lib/jobs/utils';
 
 type CareerNestJob = {
@@ -21,11 +22,12 @@ export const careernestProvider: JobProvider = {
   isConfigured: () => true,
   async fetchJobs() {
     const all: NormalizedJobInput[] = [];
-    const maxPages = 5;
+    const maxPages = envInt('CAREERNEST_PAGES', 10, 20);
+    const pageLimit = envInt('CAREERNEST_LIMIT', 50, 50);
 
     for (let page = 1; page <= maxPages; page++) {
       const res = await fetch(
-        `https://careernest.cloud/api/feed?limit=50&page=${page}`,
+        `https://careernest.cloud/api/feed?limit=${pageLimit}&page=${page}`,
         { headers: { Accept: 'application/json' }, cache: 'no-store' }
       );
 
@@ -50,7 +52,7 @@ export const careernestProvider: JobProvider = {
         });
       }
 
-      if (batch.length < 50) break;
+      if (batch.length < pageLimit) break;
     }
 
     return all;

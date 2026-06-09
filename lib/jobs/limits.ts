@@ -1,13 +1,13 @@
 /** Jobs shown to signed-out visitors before sign-in is required for more. */
-export const GUEST_JOB_LIMIT = 10;
+export const GUEST_JOB_LIMIT = 15;
 
 /** Jobs per page when browsing categories or loading more. */
-export const PAGE_SIZE = 40;
+export const PAGE_SIZE = 50;
 
 /** Max listings when the user searches by keyword (`q`). */
-export const SEARCH_JOB_LIMIT = 150;
+export const SEARCH_JOB_LIMIT = 200;
 
-const ABSOLUTE_MAX = 200;
+const ABSOLUTE_MAX = 300;
 
 /** Server-side page size / cap. */
 export function resolveJobListLimit(
