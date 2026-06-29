@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
 import { isShortJobDescription, parseCompositeJobId } from '@/lib/jobs/description';
 import { fetchJobDescription } from '@/lib/jobs/fetch-job-description';
-import { getJobListingById } from '@/lib/jobs/query';
+import { guestDescriptionPreview } from '@/lib/jobs/guest-description-preview';
+import { getJobListingByIdOrComposite } from '@/lib/jobs/query';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import type { Job } from '@/lib/jobs/types';
 
@@ -35,18 +38,30 @@ async function enrichDescription(job: Job): Promise<Job> {
   return { ...job, description: full };
 }
 
+function applyGuestPreview(job: Job): Job {
+  return {
+    ...job,
+    description: guestDescriptionPreview(job.description),
+    requirements: [],
+    benefits: [],
+  };
+}
+
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await context.params;
-    let job = await getJobListingById(id);
+    const session = await auth.api.getSession({ headers: await headers() });
+    const isGuest = !session;
+    let job = await getJobListingByIdOrComposite(id);
 
     if (job) {
       job = await enrichDescription(job);
+      if (isGuest) job = applyGuestPreview(job);
       return NextResponse.json(
-        { job },
+        { job, preview: isGuest },
         { headers: { 'Cache-Control': 'private, max-age=300' } }
       );
     }
@@ -55,8 +70,12 @@ export async function GET(
     if (parsed) {
       const description = await fetchJobDescription(parsed.sourceId, parsed.externalId);
       if (description) {
+        const desc = isGuest ? guestDescriptionPreview(description) : description;
         return NextResponse.json(
-          { job: { id, description, sourceId: parsed.sourceId, externalId: parsed.externalId } },
+          {
+            job: { id, description: desc, sourceId: parsed.sourceId, externalId: parsed.externalId },
+            preview: isGuest,
+          },
           { headers: { 'Cache-Control': 'private, max-age=300' } }
         );
       }

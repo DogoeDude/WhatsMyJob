@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Loader2, Briefcase } from 'lucide-react';
+import { AuthPromptDialog } from '@/components/auth-prompt-dialog';
+import { GuestJobDescriptionGate } from '@/components/guest-job-description-gate';
 import { Button } from '@/components/ui/button';
 import { useAppSession } from '@/lib/use-app-session';
 import { isPersistedJobId } from '@/lib/jobs/constants';
@@ -19,9 +21,12 @@ type JobDetailPanelProps = {
 };
 
 export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) {
-  const { data: session } = useAppSession();
+  const { data: session, isPending: sessionPending } = useAppSession();
   const [details, setDetails] = useState<Job | null>(job);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const isGuest = !session;
+  const sessionKnown = !sessionPending;
 
   const trackAndOpenApply = (target: Job) => {
     if (!target.applyUrl) return;
@@ -47,7 +52,37 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
   }, [job]);
 
   useEffect(() => {
-    if (!job) return;
+    if (!job || !sessionKnown) return;
+
+    if (isGuest) {
+      const hasSnippet = job.description.trim().length > 0;
+      if (hasSnippet) setLoadingDetails(false);
+
+      let cancelled = false;
+      if (!hasSnippet) setLoadingDetails(true);
+
+      (async () => {
+        try {
+          const res = await fetch(`/api/jobs/${job.id}`);
+          const data = (await res.json()) as { job?: Job };
+          if (!cancelled && res.ok && data.job?.description?.trim()) {
+            setDetails((prev) =>
+              prev
+                ? { ...prev, description: data.job!.description }
+                : { ...job, ...data.job }
+            );
+          }
+        } catch {
+          /* keep list snippet */
+        } finally {
+          if (!cancelled) setLoadingDetails(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (!isShortJobDescription(job.description)) return;
 
     let cancelled = false;
@@ -78,7 +113,7 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
     return () => {
       cancelled = true;
     };
-  }, [job?.id, job?.description]);
+  }, [job?.id, job?.description, isGuest, sessionKnown]);
 
   if (!job || !details) {
     return (
@@ -143,7 +178,20 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
             </p>
           </div>
 
-          {loadingDetails ? (
+          {isGuest ? (
+            loadingDetails && !display.description.trim() ? (
+              <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading preview…
+              </div>
+            ) : (
+              <GuestJobDescriptionGate
+                description={display.description}
+                source={display.source}
+                onSignIn={() => setAuthPromptOpen(true)}
+              />
+            )
+          ) : loadingDetails ? (
             <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading full description…
@@ -152,7 +200,9 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
             <JobDescriptionContent description={display.description} />
           )}
 
-          {!loadingDetails && (display.requirements.length > 0 || display.benefits.length > 0) && (
+          {!isGuest &&
+            !loadingDetails &&
+            (display.requirements.length > 0 || display.benefits.length > 0) && (
             <div className="grid gap-4 border-t border-border pt-6 lg:grid-cols-2">
               {display.requirements.length > 0 && (
                 <JobDetailList title="Requirements" items={display.requirements} />
@@ -189,6 +239,13 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
           </Button>
         </div>
       )}
+
+      <AuthPromptDialog
+        open={authPromptOpen}
+        onOpenChange={setAuthPromptOpen}
+        title="Sign in to view the job description"
+        description="Create a free account or sign in to read the full description, requirements, and benefits for this role."
+      />
     </div>
   );
 }

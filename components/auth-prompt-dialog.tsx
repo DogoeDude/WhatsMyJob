@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LogIn, UserPlus } from 'lucide-react';
 import {
   Dialog,
@@ -25,6 +26,13 @@ export function AuthPromptDialog({
   title = 'Sign in to see more jobs',
   description = 'Create a free account or sign in to browse the full list, save searches, and access more listings.',
 }: AuthPromptDialogProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.toString();
+  const callbackUrl = `${pathname}${query ? `?${query}` : ''}`;
+  const loginHref = `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  const registerHref = `/register?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -34,13 +42,13 @@ export function AuthPromptDialog({
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col">
           <Button asChild className="w-full">
-            <Link href="/login" onClick={() => onOpenChange(false)}>
+            <Link href={loginHref} onClick={() => onOpenChange(false)}>
               <LogIn className="h-4 w-4" />
               Sign in
             </Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link href="/register" onClick={() => onOpenChange(false)}>
+            <Link href={registerHref} onClick={() => onOpenChange(false)}>
               <UserPlus className="h-4 w-4" />
               Create account
             </Link>

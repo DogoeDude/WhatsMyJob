@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, DollarSign, MapPin, Clock, Info, Languages, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { isLikelyGerman } from '@/lib/translate/detect-german';import {
+import { isLikelyGerman } from '@/lib/translate/detect-german';
+import {
   groupDescriptionIntoSections,
   parseJobDescription,
   parseInlineSpans,
@@ -157,6 +158,7 @@ export function JobDescriptionContent({ description, className }: JobDescription
     showTranslation && translatedText ? translatedText : description;
   const blocks = parseJobDescription(activeDescription);
   const sections = groupDescriptionIntoSections(blocks);
+  const plainText = activeDescription.trim();
 
   const handleTranslate = async () => {
     if (translatedText) {
@@ -191,6 +193,18 @@ export function JobDescriptionContent({ description, className }: JobDescription
   };
 
   if (sections.length === 0 && !likelyGerman) {
+    if (plainText) {
+      return (
+        <p
+          className={cn(
+            'whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90',
+            className
+          )}
+        >
+          {plainText}
+        </p>
+      );
+    }
     return (
       <p className={cn('text-sm text-muted-foreground', className)}>
         No description provided for this role.
@@ -242,7 +256,13 @@ export function JobDescriptionContent({ description, className }: JobDescription
       )}
 
       {sections.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No description provided for this role.</p>
+        plainText ? (
+          <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">
+            {plainText}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">No description provided for this role.</p>
+        )
       ) : (
         <div className="space-y-6">
           {sections.map((section) => (

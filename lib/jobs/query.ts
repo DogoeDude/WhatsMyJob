@@ -3,17 +3,21 @@ import type { JobListFilters } from '@/lib/jobs/filters';
 import { ALL_CATEGORY_ID, getCategoryById } from '@/lib/jobs/categories';
 import { dedupeStrings } from '@/lib/jobs/utils';
 import { jobListingToJob } from '@/lib/jobs/serialize';
+import { listDescriptionSnippet } from '@/lib/jobs/guest-description-preview';
+import { parseCompositeJobId } from '@/lib/jobs/description';
 import type { Prisma } from '@prisma/client';
 
 /** List view — includes logoUrl; skips heavy description text. */
 const listListingSelect = {
   id: true,
+  externalId: true,
   title: true,
   company: true,
   location: true,
   salary: true,
   type: true,
   tags: true,
+  description: true,
   applyUrl: true,
   logoUrl: true,
   postedAt: true,
@@ -96,7 +100,7 @@ function rowToListJob(
 ) {
   return jobListingToJob({
     ...row,
-    description: '',
+    description: listDescriptionSnippet(row.description ?? ''),
     requirements: [],
     benefits: [],
   });
@@ -131,6 +135,22 @@ export async function getJobListingById(id: string) {
 
   const row = await prisma.jobListing.findUnique({
     where: { id },
+    include: { source: { select: { id: true, name: true } } },
+  });
+  if (!row) return null;
+  return jobListingToJob(row);
+}
+
+/** Resolve DB jobs by UUID or live-style composite id (`source-externalId`). */
+export async function getJobListingByIdOrComposite(id: string) {
+  const direct = await getJobListingById(id);
+  if (direct) return direct;
+
+  const parsed = parseCompositeJobId(id);
+  if (!parsed || !isDatabaseConfigured()) return null;
+
+  const row = await prisma.jobListing.findFirst({
+    where: { sourceId: parsed.sourceId, externalId: parsed.externalId },
     include: { source: { select: { id: true, name: true } } },
   });
   if (!row) return null;
