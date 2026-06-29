@@ -159,7 +159,7 @@ export function AdminDashboard() {
           <StatCard
             label="Active sources"
             value={isLoading ? '…' : `${activeSources}/${totalSources}`}
-            hint="API-connected"
+            hint="Configured sources"
             icon={Zap}
           />
           <StatCard
@@ -174,12 +174,12 @@ export function AdminDashboard() {
           />
         </div>
 
-        <SectionCard title="Job sources (APIs)" className="mb-10">
+        <SectionCard title="Job sources" className="mb-10">
           <div className="mb-6 flex flex-col gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="min-w-0">
               <p className="font-medium text-foreground">Sync all job boards</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Pull listings from every configured API into your database. This can take a few
+                Pull listings from every configured API or scraper into your database. This can take a few
                 minutes.
                 {totalSources > 0 && (
                   <>
@@ -213,11 +213,12 @@ export function AdminDashboard() {
           </div>
 
           <p className="mb-6 text-sm text-muted-foreground">
-            We use official public APIs—not scraping—so listings stay reliable and within each
-            provider&apos;s terms. Add{' '}
+            Most boards use official public APIs. LinkedIn, Jobstreet, and Indeed are scraped when no
+            API key is available. Indeed often blocks datacenter IPs — set{' '}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">SCRAPE_PROXY_URL</code> if sync
+            fails. Add{' '}
             <code className="rounded bg-muted px-1.5 py-0.5 text-xs">ADZUNA_APP_ID</code> and{' '}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">ADZUNA_APP_KEY</code> in{' '}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">.env.local</code> for Adzuna.
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">ADZUNA_APP_KEY</code> for Adzuna.
           </p>
 
           {isLoading && (
@@ -241,7 +242,7 @@ export function AdminDashboard() {
                     <div>
                       <h4 className="text-lg font-semibold text-foreground">{source.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {configured ? 'API' : 'Not configured'} · Last sync:{' '}
+                        {configured ? source.kind : 'Not configured'} · Last sync:{' '}
                         {formatWhen(source.lastSyncAt)}
                       </p>
                       {source.lastError && (

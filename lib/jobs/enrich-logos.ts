@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 import { fetchLiveJobs } from '@/lib/jobs/live-fetch';
 import { resolveJobLogoUrl } from '@/lib/jobs/resolve-logo';
 import type { Job } from '@/lib/jobs/types';
@@ -54,7 +54,7 @@ async function buildLogoCacheForJobs(jobs: Job[]): Promise<LogoCache> {
   const companies = [
     ...new Set(jobs.map((j) => j.company.trim()).filter((c) => c.length > 0)),
   ];
-  if (companies.length === 0) return emptyCache();
+  if (companies.length === 0 || !isDatabaseConfigured()) return emptyCache();
 
   const rows = await prisma.jobListing.findMany({
     where: {

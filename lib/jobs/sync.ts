@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 import { revalidateTag } from 'next/cache';
 import { invalidateHasJobsCache } from '@/lib/jobs/query';
 import { clearLogoCache } from '@/lib/jobs/enrich-logos';
@@ -7,7 +7,7 @@ import { sanitizeJobInput } from '@/lib/jobs/sanitize-job-input';
 import type { NormalizedJobInput, SyncProviderResult } from '@/lib/jobs/types';
 import type { Prisma } from '@prisma/client';
 
-const SOURCE_META: Record<string, { name: string; kind: 'api' | 'api_key' }> = {
+const SOURCE_META: Record<string, { name: string; kind: 'api' | 'api_key' | 'scrape' }> = {
   remotive: { name: 'Remotive', kind: 'api' },
   arbeitnow: { name: 'Arbeitnow', kind: 'api' },
   jobicy: { name: 'Jobicy', kind: 'api' },
@@ -18,6 +18,9 @@ const SOURCE_META: Record<string, { name: string; kind: 'api' | 'api_key' }> = {
   jobsbase: { name: 'Jobs Base', kind: 'api' },
   reed: { name: 'Reed.co.uk', kind: 'api_key' },
   adzuna: { name: 'Adzuna', kind: 'api_key' },
+  linkedin: { name: 'LinkedIn', kind: 'scrape' },
+  jobstreet: { name: 'Jobstreet', kind: 'scrape' },
+  indeed: { name: 'Indeed', kind: 'scrape' },
 };
 
 const UPSERT_BATCH = 40;
@@ -125,12 +128,16 @@ async function upsertJobs(sourceId: string, jobs: NormalizedJobInput[]) {
 }
 
 export async function syncJobProvider(sourceId: string): Promise<SyncProviderResult> {
+  if (!isDatabaseConfigured()) {
+    throw new Error('DATABASE_URL is not set — add it to .env.local and restart the dev server.');
+  }
+
   const provider = getProvider(sourceId);
   if (!provider) {
     throw new Error(`Unknown provider: ${sourceId}`);
   }
   if (!provider.isConfigured()) {
-    throw new Error(`${provider.name} is not configured (missing API keys).`);
+    throw new Error(`${provider.name} is not configured.`);
   }
 
   await ensureJobSources();
@@ -181,6 +188,10 @@ async function runProvidersInParallel<T>(
 export async function syncAllJobProviders(): Promise<
   Record<string, SyncProviderResult & { error?: string }>
 > {
+  if (!isDatabaseConfigured()) {
+    throw new Error('DATABASE_URL is not set — add it to .env.local and restart the dev server.');
+  }
+
   await ensureJobSources();
   const results: Record<string, SyncProviderResult & { error?: string }> = {};
   const providers = getActiveProviders();

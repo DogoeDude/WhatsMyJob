@@ -1,6 +1,8 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 
 const DEFAULT_STALE_HOURS = 6;
+
+export { isDatabaseConfigured };
 
 export function catalogStaleThresholdMs(): number {
   const hours = Number(process.env.CATALOG_STALE_HOURS?.trim() || DEFAULT_STALE_HOURS);
@@ -10,11 +12,18 @@ export function catalogStaleThresholdMs(): number {
 
 /** Latest successful sync across enabled sources. */
 export async function getCatalogLastSyncAt(): Promise<Date | null> {
-  const row = await prisma.jobSource.aggregate({
-    where: { enabled: true, lastSyncAt: { not: null } },
-    _max: { lastSyncAt: true },
-  });
-  return row._max.lastSyncAt;
+  if (!isDatabaseConfigured()) return null;
+
+  try {
+    const row = await prisma.jobSource.aggregate({
+      where: { enabled: true, lastSyncAt: { not: null } },
+      _max: { lastSyncAt: true },
+    });
+    return row._max.lastSyncAt;
+  } catch (err) {
+    console.error('[getCatalogLastSyncAt] database unavailable:', err);
+    return null;
+  }
 }
 
 export async function isCatalogStale(now = Date.now()): Promise<boolean> {

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 import type { JobListFilters } from '@/lib/jobs/filters';
 import { ALL_CATEGORY_ID, getCategoryById } from '@/lib/jobs/categories';
 import { dedupeStrings } from '@/lib/jobs/utils';
@@ -76,6 +76,8 @@ let hasJobsCache: { at: number; value: boolean } | null = null;
 const HAS_JOBS_TTL_MS = 30_000;
 
 export async function hasAnyJobListings(): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+
   if (hasJobsCache && Date.now() - hasJobsCache.at < HAS_JOBS_TTL_MS) {
     return hasJobsCache.value;
   }
@@ -105,6 +107,10 @@ export async function searchJobListings(
   limit = 150,
   offset = 0
 ) {
+  if (!isDatabaseConfigured()) {
+    return { jobs: [], skip: offset };
+  }
+
   const rows = await prisma.jobListing.findMany({
     where: buildWhere(filters),
     select: listListingSelect,
@@ -121,6 +127,8 @@ export async function searchJobListings(
 }
 
 export async function getJobListingById(id: string) {
+  if (!isDatabaseConfigured()) return null;
+
   const row = await prisma.jobListing.findUnique({
     where: { id },
     include: { source: { select: { id: true, name: true } } },
@@ -130,6 +138,8 @@ export async function getJobListingById(id: string) {
 }
 
 export async function getSourceFacetsFromDb(filters: JobListFilters) {
+  if (!isDatabaseConfigured()) return [];
+
   const where = buildFacetWhere(filters);
   const groups = await prisma.jobListing.groupBy({
     by: ['sourceId'],
@@ -143,10 +153,13 @@ export async function getSourceFacetsFromDb(filters: JobListFilters) {
 }
 
 export async function countJobListings(filters: JobListFilters) {
+  if (!isDatabaseConfigured()) return 0;
   return prisma.jobListing.count({ where: buildWhere(filters) });
 }
 
 export async function getDistinctJobTypes(filters: JobListFilters) {
+  if (!isDatabaseConfigured()) return [];
+
   const where = buildFacetWhere(filters);
   const rows = await prisma.jobListing.findMany({
     where,
@@ -161,6 +174,8 @@ export async function getDistinctJobTypes(filters: JobListFilters) {
 }
 
 export async function getTopLocationsFromDb(filters: JobListFilters, limit = 8) {
+  if (!isDatabaseConfigured()) return [];
+
   const where = buildFacetWhere({ ...filters, location: '' });
   const groups = await prisma.jobListing.groupBy({
     by: ['location'],
@@ -173,6 +188,15 @@ export async function getTopLocationsFromDb(filters: JobListFilters, limit = 8) 
 }
 
 export async function getJobStats() {
+  if (!isDatabaseConfigured()) {
+    return {
+      totalJobs: 0,
+      locationCount: 0,
+      companyCount: 0,
+      sources: [],
+    };
+  }
+
   const [totalJobs, distinctCounts, sources] = await Promise.all([
     prisma.jobListing.count(),
     prisma.$queryRaw<[{ location_count: bigint; company_count: bigint }]>`

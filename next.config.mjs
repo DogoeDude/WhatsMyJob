@@ -29,7 +29,7 @@ const nextConfig = {
     ],
   },
   // Prisma + auth: keep server bundles from pulling broken optional peers.
-  serverExternalPackages: ['@prisma/client', 'prisma', 'better-auth'],
+  serverExternalPackages: ['@prisma/client', 'prisma', 'better-auth', 'undici'],
   turbopack: {
     root: projectRoot,
     resolveAlias: {

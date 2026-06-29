@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import { isDatabaseConfigured } from '@/lib/prisma';
 import type { JobListFilters } from '@/lib/jobs/filters';
 import { mergeSourceFacetsWithSelection, type SourceFacet } from '@/lib/jobs/filters';
 import { JOB_SOURCES_CATALOG } from '@/lib/jobs/sources-catalog';
@@ -39,6 +40,15 @@ export function filtersCacheKey(filters: JobListFilters): string {
 }
 
 async function loadJobsFilterMeta(filters: JobListFilters): Promise<JobsFilterMeta> {
+  if (!isDatabaseConfigured()) {
+    return {
+      sources: [],
+      types: [],
+      totalMatching: 0,
+      locationSuggestions: [],
+    };
+  }
+
   const [facets, types, totalMatching, locationSuggestions] = await Promise.all([
     getSourceFacetsFromDb(filters),
     getDistinctJobTypes(filters),

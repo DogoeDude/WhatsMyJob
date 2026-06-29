@@ -16,7 +16,7 @@ export function Footer() {
           <div className="max-w-sm">
             <p className="font-medium text-foreground">WhatsMyJob</p>
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-              Aggregates listings from public job board APIs. Job content belongs to each
+              Aggregates listings from public job board APIs and configured scrapers. Job content belongs to each
               provider and employer.
             </p>
           </div>

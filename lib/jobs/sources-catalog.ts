@@ -67,6 +67,24 @@ export const JOB_SOURCES_CATALOG: JobSourceMeta[] = [
     website: 'https://www.adzuna.com',
     description: 'US / UK job search API',
   },
+  {
+    id: 'linkedin',
+    name: 'LinkedIn',
+    website: 'https://www.linkedin.com/jobs',
+    description: 'Guest job search (no API key)',
+  },
+  {
+    id: 'jobstreet',
+    name: 'Jobstreet',
+    website: 'https://www.jobstreet.com.ph',
+    description: 'Philippines / SEA listings (SEEK search API)',
+  },
+  {
+    id: 'indeed',
+    name: 'Indeed',
+    website: 'https://www.indeed.com',
+    description: 'Global listings (may need SCRAPE_PROXY_URL)',
+  },
 ];
 
 export function getSourceMeta(sourceId: string): JobSourceMeta | undefined {
