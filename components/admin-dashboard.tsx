@@ -7,6 +7,8 @@ import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
 import { SectionCard } from '@/components/section-card';
 import { Button } from '@/components/ui/button';
+import { winMessageBannerClass } from '@/lib/ui-classes';
+import { cn } from '@/lib/utils';
 import {
   Zap,
   CheckCircle,
@@ -145,7 +147,7 @@ export function AdminDashboard() {
 
       <PageContent>
         {message && (
-          <div className="mb-6 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-foreground">
+          <div className={cn(winMessageBannerClass, 'mb-6')}>
             <p className="whitespace-pre-wrap break-words">{message}</p>
           </div>
         )}
@@ -236,7 +238,7 @@ export function AdminDashboard() {
               return (
                 <div
                   key={source.id}
-                  className="rounded-xl border border-border/60 bg-muted/20 p-5 sm:p-6"
+                  className="win-surface rounded-lg p-5 sm:p-6"
                 >
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -287,10 +289,10 @@ export function AdminDashboard() {
         </SectionCard>
 
         <SectionCard title="Recent sync logs">
-          <div className="overflow-x-auto rounded-xl border border-border/60">
+          <div className="win-surface overflow-x-auto rounded-lg">
             <table className="w-full min-w-[640px]">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
+                <tr className="border-b border-border bg-secondary">
                   <th className="px-4 py-3 text-left text-sm font-semibold">Source</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Status</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">When</th>
@@ -309,7 +311,7 @@ export function AdminDashboard() {
                   data?.logs.map((log) => (
                     <tr
                       key={log.id}
-                      className="border-b border-border/60 hover:bg-muted/20"
+                      className="border-b border-border hover:bg-[var(--win-hover)]"
                     >
                       <td className="px-4 py-3 text-sm font-medium">{log.source.name}</td>
                       <td className="px-4 py-3 text-sm capitalize">{log.status}</td>
@@ -341,37 +343,21 @@ function StatusBadge({
   configured: boolean;
 }) {
   if (!configured) {
-    return (
-      <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-        Needs API keys
-      </span>
-    );
+    return <span className="win-status-muted">Needs API keys</span>;
   }
   if (status === 'syncing') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:text-blue-400">
+      <span className="win-status-badge">
         <RefreshCw className="h-3 w-3 animate-spin" />
         Syncing
       </span>
     );
   }
   if (status === 'error') {
-    return (
-      <span className="inline-flex rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-700 dark:text-red-400">
-        Error
-      </span>
-    );
+    return <span className="win-status-destructive">Error</span>;
   }
   if (status === 'active') {
-    return (
-      <span className="inline-flex rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-400">
-        Active
-      </span>
-    );
+    return <span className="win-status-badge font-medium">Active</span>;
   }
-  return (
-    <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-      Idle
-    </span>
-  );
+  return <span className="win-status-muted">Idle</span>;
 }

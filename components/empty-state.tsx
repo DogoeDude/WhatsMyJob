@@ -23,7 +23,9 @@ export function EmptyState({
         className
       )}
     >
-      <Icon className="mb-4 h-10 w-10 text-muted-foreground/60" strokeWidth={1.25} />
+      <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-secondary">
+        <Icon className="h-6 w-6 text-muted-foreground" strokeWidth={1.25} />
+      </span>
       <h3 className="font-medium text-foreground">{title}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
       {action && <div className="mt-6">{action}</div>}

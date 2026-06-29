@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { selectSurfaceClass } from '@/lib/ui-classes';
+import { selectSurfaceClass, winMessageBannerClass, winStickyFooterClass } from '@/lib/ui-classes';
 import {
   PREFERRED_TYPE_OPTIONS,
   PREFERRED_WORK_OPTIONS,
@@ -139,12 +139,12 @@ export function ProfileForm({ initial }: ProfileFormProps) {
         </p>
       )}
       {success && (
-        <p className="rounded-lg border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-foreground">
+        <p className={winMessageBannerClass}>
           {success}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-x-0 gap-y-3 rounded-xl border border-border bg-muted/20 px-4 py-4 sm:px-5">
+      <div className="win-settings-group flex flex-wrap items-center gap-x-0 gap-y-3 px-4 py-4 sm:px-5">
         {accountItems.map((item, i) => (
           <div
             key={item.label}
@@ -166,7 +166,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
         ))}
         {initial.role === 'admin' && (
           <div className="flex w-full items-center px-4 sm:w-auto sm:border-l sm:border-border">
-            <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            <span className="win-status-badge">
               Admin
             </span>
           </div>
@@ -319,7 +319,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
               <CardDescription>When browsing listings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 px-6 py-5">
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/15 px-4 py-3.5">
+              <div className="win-settings-row rounded-lg border border-border bg-secondary px-4">
                 <div>
                   <p className="text-sm font-medium text-foreground">Open to work</p>
                   <p className="text-xs text-muted-foreground">Actively looking for roles</p>
@@ -379,10 +379,10 @@ export function ProfileForm({ initial }: ProfileFormProps) {
                         type="button"
                         onClick={() => toggleType(type)}
                         className={cn(
-                          'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                          'rounded-md border px-3 py-2 text-xs font-normal transition-colors',
                           active
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                            ? 'win-nav-pill-active text-foreground'
+                            : 'border-border bg-card text-muted-foreground hover:bg-[var(--win-hover)]'
                         )}
                       >
                         {type}
@@ -407,7 +407,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 flex flex-col gap-2 rounded-xl border border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-end">
+      <div className={cn(winStickyFooterClass, 'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end')}>
         <p className="text-xs text-muted-foreground sm:mr-auto">
           Password changes use the button in the security section below.
         </p>

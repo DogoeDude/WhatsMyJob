@@ -49,7 +49,7 @@ function Brand() {
     <Link
       href="/"
       prefetch
-      className="group flex min-w-0 items-center gap-2.5 rounded-xl py-1 pr-1 transition-opacity hover:opacity-90 sm:gap-3"
+      className="group flex min-w-0 items-center gap-2.5 rounded-md py-1 pr-1 transition-opacity hover:opacity-90 sm:gap-3"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-sm sm:h-10 sm:w-10">
         <Briefcase className="h-5 w-5 sm:h-[1.35rem] sm:w-[1.35rem]" aria-hidden />
@@ -196,7 +196,7 @@ function UserAccountMenu({
           </span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5">
+      <DropdownMenuContent align="end" className="w-56 rounded-lg p-1.5">
         <DropdownMenuLabel className="font-normal">
           <p className="truncate text-sm font-medium">{displayName}</p>
           <p className="truncate text-xs font-normal text-muted-foreground">{email}</p>
@@ -267,13 +267,13 @@ function GuestAuthActions({ onNavigate }: { onNavigate?: () => void }) {
         asChild
         variant="ghost"
         size="default"
-        className="hidden h-11 rounded-xl px-4 text-sm font-medium sm:inline-flex"
+        className="hidden h-9 rounded-md px-4 text-sm font-normal sm:inline-flex"
       >
         <Link href="/register" prefetch onClick={onNavigate}>
           Register
         </Link>
       </Button>
-      <Button asChild size="default" className="h-11 rounded-xl px-4 text-sm font-semibold shadow-sm">
+      <Button asChild size="default" className="h-9 rounded-md px-4 text-sm font-normal">
         <Link href="/login" prefetch onClick={onNavigate}>
           Sign in
         </Link>
@@ -323,7 +323,7 @@ function MobileGuestSheet({
           })}
         </nav>
         <div className="mt-auto grid gap-2 border-t border-border p-4">
-          <Button asChild size="lg" className="h-12 rounded-xl">
+          <Button asChild size="lg" className="h-11 rounded-md">
             <Link href="/login" prefetch onClick={() => onOpenChange(false)}>
               Sign in
             </Link>
@@ -394,7 +394,7 @@ export function Navbar() {
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             {isPending ? (
               <div
-                className="flex h-11 items-center gap-2 rounded-xl border border-border/80 bg-muted/30 px-3 text-sm text-muted-foreground"
+                className="flex h-9 items-center gap-2 rounded-md border border-border bg-secondary px-3 text-sm text-muted-foreground"
                 aria-busy="true"
               >
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
@@ -417,7 +417,7 @@ export function Navbar() {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 rounded-xl sm:hidden"
+                  className="h-9 w-9 rounded-md sm:hidden"
                   onClick={() => setGuestSheetOpen(true)}
                   aria-label="Open menu"
                 >

@@ -122,7 +122,7 @@ export function JobsSidebar({
         <Button
           variant="secondary"
           size="sm"
-          className="h-10 w-full rounded-xl font-medium shadow-sm"
+          className="h-10 w-full rounded-md font-normal"
           onClick={onRefresh}
           disabled={isLoading || isRefreshing}
         >

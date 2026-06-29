@@ -82,7 +82,7 @@ export function ProfileResumeUpload({ initial }: ProfileResumeUploadProps) {
       {resume ? (
         <div className="flex flex-col gap-4">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-foreground">
               <FileText className="h-5 w-5" />
             </span>
             <div className="min-w-0">
@@ -159,8 +159,8 @@ export function ProfileResumeUpload({ initial }: ProfileResumeUploadProps) {
           className={cn(
             'flex min-h-[200px] flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors',
             dragOver
-              ? 'border-primary bg-primary/5'
-              : 'border-border bg-muted/15 hover:border-primary/40 hover:bg-muted/25',
+              ? 'border-foreground/30 bg-secondary'
+              : 'border-border bg-muted/30 hover:border-foreground/20 hover:bg-[var(--win-hover)]',
             uploading && 'pointer-events-none opacity-60'
           )}
         >

@@ -237,4 +237,32 @@
     border-color: var(--border);
     color: var(--foreground);
   }
+
+  /* Settings app section grouping */
+  .win-settings-group {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--win-shadow);
+  }
+
+  .win-settings-row {
+    @apply flex items-center justify-between gap-4 border-b border-border px-4 py-3.5 last:border-b-0;
+  }
+
+  .win-caption {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .win-status-badge {
+    @apply inline-flex items-center rounded-md border border-border bg-secondary px-2 py-0.5 text-xs font-medium text-foreground;
+  }
+
+  .win-status-muted {
+    @apply inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground;
+  }
+
+  .win-status-destructive {
+    @apply inline-flex items-center rounded-md border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive;
+  }
 }

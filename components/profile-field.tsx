@@ -67,7 +67,7 @@ export function ProfileSubpanel({ title, children, className }: ProfileSubpanelP
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-xl border border-border/80 bg-muted/10 p-4',
+        'flex flex-col gap-3 rounded-lg border border-border bg-secondary p-4',
         className
       )}
     >

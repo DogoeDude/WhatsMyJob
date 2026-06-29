@@ -34,7 +34,7 @@ export function CompanyLogo({ company, logoUrl, size = 'md', className }: Compan
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/50 font-semibold shadow-sm',
+        'flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border font-semibold shadow-[var(--win-shadow)]',
         sizeClasses[size],
         showImage ? 'bg-background' : 'ring-1 ring-inset ring-black/5',
         className

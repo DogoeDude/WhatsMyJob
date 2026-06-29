@@ -1,5 +1,6 @@
 import { ProfileForm } from '@/components/profile-form';
 import { PageContent, PageShell } from '@/components/page-shell';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { getCachedSession } from '@/lib/auth-session';
 import { getOrCreateUserProfile } from '@/lib/profile/query';
@@ -15,16 +16,11 @@ export default async function ProfilePage() {
 
     return (
       <PageShell>
+        <PageHeader
+          title="Your profile"
+          subtitle="Contact details, resume, cover letter, job preferences, and password — all in one place. Everything here is private to your account."
+        />
         <PageContent wide>
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Your profile
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Contact details, resume, cover letter, job preferences, and password — all
-              in one place. Everything here is private to your account.
-            </p>
-          </div>
           <ProfileForm initial={profile} />
         </PageContent>
       </PageShell>

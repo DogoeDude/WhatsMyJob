@@ -44,10 +44,10 @@ function CalloutBlock({
   text: string;
 }) {
   const styles = {
-    salary: { icon: DollarSign, bar: 'bg-emerald-500' },
-    location: { icon: MapPin, bar: 'bg-sky-500' },
-    schedule: { icon: Clock, bar: 'bg-amber-500' },
-    info: { icon: Info, bar: 'bg-muted-foreground' },
+    salary: { icon: DollarSign, bar: 'bg-foreground/20' },
+    location: { icon: MapPin, bar: 'bg-foreground/15' },
+    schedule: { icon: Clock, bar: 'bg-foreground/12' },
+    info: { icon: Info, bar: 'bg-muted-foreground/30' },
   }[variant];
 
   const Icon = styles.icon;

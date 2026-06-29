@@ -12,10 +12,13 @@ import {
   MessageCircleOff,
 } from 'lucide-react';
 import { PageContent, PageShell } from '@/components/page-shell';
+import { PageHeader } from '@/components/page-header';
+import { StatCard } from '@/components/stat-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/empty-state';
 import { APPLICATION_STATUSES, statusLabel } from '@/lib/applications/statuses';
 import type { ApplicationStats, JobApplicationRecord } from '@/lib/applications/types';
+import { filterChipActiveClass, filterChipClass } from '@/lib/ui-classes';
 import { cn } from '@/lib/utils';
 
 type ApplicationsDashboardProps = {
@@ -23,44 +26,19 @@ type ApplicationsDashboardProps = {
   stats: ApplicationStats;
 };
 
-function StatCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: number;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    applied: 'bg-muted text-muted-foreground',
-    screening: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    interview: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
-    offer: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    rejected: 'bg-destructive/10 text-destructive',
-    withdrawn: 'bg-muted text-muted-foreground',
-    no_reply: 'bg-amber-500/10 text-amber-800 dark:text-amber-200',
+    applied: 'win-status-muted',
+    screening: 'win-status-badge',
+    interview: 'win-status-badge font-medium',
+    offer: 'win-status-badge font-medium',
+    rejected: 'win-status-destructive',
+    withdrawn: 'win-status-muted',
+    no_reply: 'win-status-muted',
   };
 
   return (
-    <span
-      className={cn(
-        'inline-flex rounded-md px-2 py-0.5 text-xs font-medium',
-        styles[status] ?? styles.applied
-      )}
-    >
+    <span className={cn(styles[status] ?? styles.applied)}>
       {statusLabel(status)}
     </span>
   );
@@ -99,7 +77,7 @@ function ApplicationRow({
   const appliedLabel = format(new Date(app.appliedAt), 'MMM d, yyyy');
 
   return (
-    <article className="rounded-lg border border-border bg-card p-4 sm:p-5">
+    <article className="win-surface rounded-lg p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold leading-snug text-foreground">{app.title}</h3>
@@ -121,9 +99,7 @@ function ApplicationRow({
           <span
             className={cn(
               'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs',
-              hasReply
-                ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
-                : 'border-border text-muted-foreground'
+              hasReply ? 'win-status-badge' : 'win-status-muted'
             )}
           >
             {hasReply ? (
@@ -206,25 +182,21 @@ export function ApplicationsDashboard({
 
   return (
     <PageShell>
-      <PageContent className="max-w-4xl">
-        <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            My applications
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Track where you applied, company, date, replies, and where you are in the process.
-          </p>
-        </header>
+      <PageHeader
+        title="My applications"
+        subtitle="Track where you applied, company, date, replies, and where you are in the process."
+      />
 
+      <PageContent className="max-w-4xl">
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Total applied" value={stats.total} />
-          <StatCard label="Awaiting reply" value={stats.awaitingReply} hint="No response yet" />
-          <StatCard label="In process" value={stats.inProcess} hint="Screening or interview" />
-          <StatCard label="Offers" value={stats.offers} />
+          <StatCard label="Total applied" value={stats.total} icon={Briefcase} />
+          <StatCard label="Awaiting reply" value={stats.awaitingReply} hint="No response yet" icon={MessageCircleOff} />
+          <StatCard label="In process" value={stats.inProcess} hint="Screening or interview" icon={Clock} />
+          <StatCard label="Offers" value={stats.offers} icon={Briefcase} />
         </div>
 
         {stats.byStatus.length > 0 && (
-          <section className="mb-8 rounded-lg border border-border bg-card p-4 sm:p-5">
+          <section className="win-surface mb-8 rounded-lg p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-foreground">Pipeline overview</h2>
             <ul className="mt-4 space-y-2">
               {APPLICATION_STATUSES.map((s) => {
@@ -235,7 +207,7 @@ export function ApplicationsDashboard({
                     <span className="w-24 shrink-0 text-muted-foreground">{s.label}</span>
                     <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-primary/70 transition-all"
+                        className="h-full rounded-full bg-foreground/25 transition-all"
                         style={{ width: `${(count / pipelineMax) * 100}%` }}
                       />
                     </div>
@@ -261,12 +233,7 @@ export function ApplicationsDashboard({
               key={tab.id}
               type="button"
               onClick={() => setFilter(tab.id)}
-              className={cn(
-                'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
-                filter === tab.id
-                  ? 'border-primary/30 bg-primary/10 text-foreground'
-                  : 'border-border text-muted-foreground hover:bg-muted/50'
-              )}
+              className={cn(filterChipClass, filter === tab.id && filterChipActiveClass)}
             >
               {tab.label}
             </button>

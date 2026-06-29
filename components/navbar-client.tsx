@@ -10,13 +10,13 @@ function NavbarSkeleton() {
       <header className="win-mica sticky top-0 z-50 w-full">
         <div className={siteHeaderInnerClass}>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 animate-pulse rounded-xl bg-muted sm:h-11 sm:w-11" />
+            <div className="h-10 w-10 animate-pulse rounded-lg bg-muted sm:h-9 sm:w-9" />
             <div className="space-y-1.5">
               <div className="h-4 w-28 animate-pulse rounded-md bg-muted" />
               <div className="hidden h-3 w-20 animate-pulse rounded-md bg-muted min-[400px]:block" />
             </div>
           </div>
-          <div className="h-11 w-11 animate-pulse rounded-xl bg-muted" />
+          <div className="h-9 w-9 animate-pulse rounded-md bg-muted" />
         </div>
       </header>
     </>

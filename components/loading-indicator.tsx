@@ -38,7 +38,7 @@ export function LoadingOverlay({ label = 'Loading…', className }: LoadingOverl
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[200] flex items-center justify-center bg-background/75 backdrop-blur-sm',
+        'fixed inset-0 z-[200] flex items-center justify-center bg-background/80',
         className
       )}
       role="alertdialog"
@@ -46,7 +46,7 @@ export function LoadingOverlay({ label = 'Loading…', className }: LoadingOverl
       aria-busy="true"
       aria-label={label}
     >
-      <div className="rounded-2xl border border-border bg-card px-8 py-7 shadow-lg">
+      <div className="win-surface rounded-lg px-8 py-7">
         <LoadingSpinner label={label} size="lg" />
       </div>
     </div>

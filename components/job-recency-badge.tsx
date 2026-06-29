@@ -23,7 +23,7 @@ export function JobRecencyBadge({
     <Badge
       variant="outline"
       className={cn(
-        'h-5 shrink-0 px-1.5 text-[10px] font-semibold uppercase tracking-wide',
+        'h-5 shrink-0 px-1.5 text-[10px] font-medium uppercase tracking-wide',
         jobRecencyBadgeClass[recency.variant],
         className
       )}

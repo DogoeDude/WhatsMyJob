@@ -34,3 +34,13 @@ export const filterPanelClass =
 
 export const filterAccordionTriggerClass =
   'py-3 text-sm font-semibold text-foreground hover:no-underline [&>svg]:text-muted-foreground';
+
+export const winSettingsGroupClass = 'win-settings-group overflow-hidden';
+
+export const winPanelClass = 'win-surface rounded-lg';
+
+export const winMessageBannerClass =
+  'rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-foreground';
+
+export const winStickyFooterClass =
+  'sticky bottom-0 z-10 border-t border-border bg-card px-4 py-3 shadow-[var(--win-shadow)]';

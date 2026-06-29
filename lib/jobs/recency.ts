@@ -37,11 +37,11 @@ export function getJobRecencyFlag(
   return { label: 'Later', variant: 'later' };
 }
 
+/** Neutral Win11-style recency chips — no saturated accent colors. */
 export const jobRecencyBadgeClass: Record<JobRecencyVariant, string> = {
-  latest:
-    'border-emerald-500/45 bg-emerald-500/15 text-emerald-900 dark:text-emerald-300',
-  new: 'border-sky-500/40 bg-sky-500/12 text-sky-900 dark:text-sky-300',
-  recent: 'border-primary/35 bg-primary/10 text-primary',
-  week: 'border-border bg-muted/60 text-muted-foreground',
-  later: 'border-transparent bg-muted/40 text-muted-foreground',
+  latest: 'border-border bg-secondary text-foreground font-medium',
+  new: 'border-border bg-muted text-foreground',
+  recent: 'border-border bg-muted/80 text-muted-foreground',
+  week: 'border-transparent bg-muted/60 text-muted-foreground',
+  later: 'border-transparent bg-transparent text-muted-foreground',
 };

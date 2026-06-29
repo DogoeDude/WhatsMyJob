@@ -193,7 +193,7 @@ export function JobFilters({
         disabled={disabled}
         value={value.type}
         onChange={(e) => onChange({ ...value, type: e.target.value })}
-        className={cn(selectSurfaceClass, sidebar && 'rounded-xl bg-muted/30 ring-1 ring-border/50')}
+        className={cn(selectSurfaceClass, sidebar && 'bg-secondary')}
         aria-label="Job type"
       >
         <option value="">All types from listings</option>

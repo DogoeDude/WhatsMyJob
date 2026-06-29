@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { ProfileField, profileControlClass } from '@/components/profile-field';
+import { winMessageBannerClass } from '@/lib/ui-classes';
 import { cn } from '@/lib/utils';
 
 type ProfileChangePasswordProps = {
@@ -129,7 +130,7 @@ export function ProfileChangePassword({ hasPassword }: ProfileChangePasswordProp
 
   if (!hasPassword) {
     return (
-      <div className="flex gap-3 rounded-xl border border-border bg-muted/25 px-4 py-4">
+      <div className="flex gap-3 rounded-lg border border-border bg-secondary px-4 py-4">
         <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
         <p className="text-sm text-muted-foreground">
           This account was not created with email and password — nothing to update here.
@@ -143,7 +144,7 @@ export function ProfileChangePassword({ hasPassword }: ProfileChangePasswordProp
       {error && (
         <p
           role="alert"
-          className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           {error}
         </p>
@@ -151,7 +152,7 @@ export function ProfileChangePassword({ hasPassword }: ProfileChangePasswordProp
       {success && (
         <p
           role="status"
-          className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-foreground"
+          className={winMessageBannerClass}
         >
           {success}
         </p>
@@ -203,8 +204,8 @@ export function ProfileChangePassword({ hasPassword }: ProfileChangePasswordProp
             <li
               key={item.label}
               className={cn(
-                'flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium',
-                item.ok ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground'
+                'flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium',
+                item.ok ? 'win-status-badge' : 'win-status-muted'
               )}
             >
               <Check
@@ -216,7 +217,7 @@ export function ProfileChangePassword({ hasPassword }: ProfileChangePasswordProp
           ))}
         </ul>
 
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/15 px-4 py-3">
+        <div className="win-settings-row rounded-lg border border-border bg-secondary">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-foreground">Sign out other devices</p>
             <p className="text-xs text-muted-foreground">After you save</p>
