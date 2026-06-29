@@ -1,5 +1,17 @@
 import { buildUiAvatarsUrl, companyInitials, getCompanyLogoColors } from '@/lib/jobs/logo-colors';
 
+/** Favicon / generated avatar URLs — not real employer logos. */
+export function isPlaceholderLogoUrl(url: string): boolean {
+  const u = url.trim().toLowerCase();
+  return (
+    u.includes('google.com/s2/favicons') ||
+    u.includes('duckduckgo.com/ip3/') ||
+    u.includes('ui-avatars.com') ||
+    u.includes('clearbit.com') ||
+    u.endsWith('/favicon.ico')
+  );
+}
+
 /** Best-effort company domain for favicon lookup. */
 export function guessCompanyDomain(company: string): string | null {
   const clean = company
@@ -11,40 +23,31 @@ export function guessCompanyDomain(company: string): string | null {
   return `${clean}.com`;
 }
 
-/** Always returns a URL that loads in `<img>` (favicon or generated avatar). */
+/** Fallback image URL when a colored initials tile is not used (e.g. exports). */
 export function fallbackLogoUrl(company: string): string {
-  const name = company.trim() || 'Company';
-  const domain = guessCompanyDomain(name);
-  if (domain) {
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
-  }
-  return buildUiAvatarsUrl(name);
+  return buildUiAvatarsUrl(company);
 }
 
 /**
- * Pick the best logo URL for API responses.
- * Provider URLs are kept when present; otherwise use favicon/avatar (never empty).
+ * Keep only real provider logo URLs on job records.
+ * Synthetic favicons/avatars are omitted so the UI can show colored initials.
  */
-export function resolveJobLogoUrl(company: string, logoUrl?: string | null): string {
+export function resolveJobLogoUrl(
+  company: string,
+  logoUrl?: string | null
+): string | undefined {
+  void company;
   const trimmed = logoUrl?.trim();
-  if (trimmed) return trimmed;
-  return fallbackLogoUrl(company);
+  if (!trimmed || isPlaceholderLogoUrl(trimmed)) return undefined;
+  return trimmed;
 }
 
-/** Client img `src` candidates — provider URL first, then favicon, then avatar. */
+/** Client img candidates — real provider URL only; initials handle the rest. */
 export function buildLogoImgSources(logoUrl: string | null | undefined, company: string): string[] {
-  const out: string[] = [];
+  void company;
   const trimmed = logoUrl?.trim();
-  if (trimmed) out.push(trimmed);
-
-  const domain = guessCompanyDomain(company);
-  if (domain) {
-    out.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
-    out.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
-  }
-
-  const name = company.trim() || 'Co';
-  out.push(buildUiAvatarsUrl(name));
-
-  return [...new Set(out)];
+  if (!trimmed || isPlaceholderLogoUrl(trimmed)) return [];
+  return [trimmed];
 }
+
+export { companyInitials, getCompanyLogoColors };

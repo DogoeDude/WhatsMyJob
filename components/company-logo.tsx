@@ -22,21 +22,23 @@ export function CompanyLogo({ company, logoUrl, size = 'md', className }: Compan
   const sources = useMemo(() => buildLogoImgSources(logoUrl, company), [logoUrl, company]);
   const colors = useMemo(() => getCompanyLogoColors(company), [company]);
   const initials = useMemo(() => companyInitials(company), [company]);
-  const [index, setIndex] = useState(0);
+  const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
-    setIndex(0);
+    setImageFailed(false);
   }, [logoUrl, company]);
 
-  const src = sources[index];
-  const showImage = index < sources.length && Boolean(src);
+  const src = sources[0];
+  const showImage = Boolean(src) && !imageFailed;
 
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border font-semibold shadow-[var(--win-shadow)]',
+        'flex shrink-0 items-center justify-center overflow-hidden rounded-lg font-semibold',
         sizeClasses[size],
-        showImage ? 'bg-background' : 'ring-1 ring-inset ring-black/5',
+        showImage
+          ? 'border border-border bg-background shadow-[var(--win-shadow)]'
+          : 'border border-black/[0.06] shadow-sm',
         className
       )}
       style={
@@ -44,6 +46,7 @@ export function CompanyLogo({ company, logoUrl, size = 'md', className }: Compan
           ? undefined
           : { backgroundColor: colors.bg, color: colors.fg }
       }
+      title={company}
     >
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -55,7 +58,7 @@ export function CompanyLogo({ company, logoUrl, size = 'md', className }: Compan
           decoding="async"
           referrerPolicy="no-referrer"
           className="h-full w-full object-contain p-1"
-          onError={() => setIndex((i) => i + 1)}
+          onError={() => setImageFailed(true)}
         />
       ) : (
         <span className="select-none leading-none tracking-tight">{initials}</span>

@@ -1,15 +1,17 @@
-/** Stable accent colors for company initials when logos are missing. */
+/** Stable, distinct tile colors for company initials (Win11-style soft accents). */
 const LOGO_COLOR_PALETTE = [
-  { bg: '#6366f1', fg: '#ffffff' },
-  { bg: '#0ea5e9', fg: '#ffffff' },
-  { bg: '#14b8a6', fg: '#ffffff' },
-  { bg: '#22c55e', fg: '#ffffff' },
-  { bg: '#f59e0b', fg: '#1f2937' },
-  { bg: '#f97316', fg: '#ffffff' },
-  { bg: '#ef4444', fg: '#ffffff' },
-  { bg: '#ec4899', fg: '#ffffff' },
-  { bg: '#a855f7', fg: '#ffffff' },
-  { bg: '#64748b', fg: '#ffffff' },
+  { bg: '#c7d9f0', fg: '#1e3a5f' },
+  { bg: '#d9cce8', fg: '#3d2d5c' },
+  { bg: '#c5e6d8', fg: '#1a4d38' },
+  { bg: '#f5dcc4', fg: '#6b3d12' },
+  { bg: '#f0c9d4', fg: '#6b2244' },
+  { bg: '#d4ddf0', fg: '#2a3d66' },
+  { bg: '#ebe3c8', fg: '#5c4a18' },
+  { bg: '#c8e0e0', fg: '#1f4a4a' },
+  { bg: '#e0d4ec', fg: '#44335a' },
+  { bg: '#d8d8d8', fg: '#2b2b2b' },
+  { bg: '#f0d4c4', fg: '#5c3018' },
+  { bg: '#cce0f0', fg: '#1a4466' },
 ] as const;
 
 function hashCompanyName(company: string): number {
