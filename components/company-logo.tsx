@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { companyInitials, getCompanyLogoColors } from '@/lib/jobs/logo-colors';
 import { buildLogoImgSources } from '@/lib/jobs/resolve-logo';
 
 type CompanyLogoProps = {
@@ -12,13 +13,15 @@ type CompanyLogoProps = {
 };
 
 const sizeClasses = {
-  sm: 'h-10 w-10 text-base',
-  md: 'h-12 w-12 text-lg',
-  lg: 'h-16 w-16 text-2xl',
+  sm: 'h-10 w-10 text-xs',
+  md: 'h-12 w-12 text-sm',
+  lg: 'h-16 w-16 text-lg',
 };
 
 export function CompanyLogo({ company, logoUrl, size = 'md', className }: CompanyLogoProps) {
   const sources = useMemo(() => buildLogoImgSources(logoUrl, company), [logoUrl, company]);
+  const colors = useMemo(() => getCompanyLogoColors(company), [company]);
+  const initials = useMemo(() => companyInitials(company), [company]);
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -31,11 +34,16 @@ export function CompanyLogo({ company, logoUrl, size = 'md', className }: Compan
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted font-semibold text-muted-foreground',
+        'flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/60 font-semibold shadow-sm',
         sizeClasses[size],
-        showImage && 'bg-background',
+        showImage ? 'bg-background' : 'ring-1 ring-inset ring-black/5',
         className
       )}
+      style={
+        showImage
+          ? undefined
+          : { backgroundColor: colors.bg, color: colors.fg }
+      }
     >
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -50,7 +58,7 @@ export function CompanyLogo({ company, logoUrl, size = 'md', className }: Compan
           onError={() => setIndex((i) => i + 1)}
         />
       ) : (
-        (company.trim().charAt(0) || '?').toUpperCase()
+        <span className="select-none leading-none tracking-tight">{initials}</span>
       )}
     </div>
   );

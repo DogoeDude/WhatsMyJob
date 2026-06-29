@@ -1,3 +1,5 @@
+import { buildUiAvatarsUrl, companyInitials, getCompanyLogoColors } from '@/lib/jobs/logo-colors';
+
 /** Best-effort company domain for favicon lookup. */
 export function guessCompanyDomain(company: string): string | null {
   const clean = company
@@ -16,7 +18,7 @@ export function fallbackLogoUrl(company: string): string {
   if (domain) {
     return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
   }
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=128&background=e2e8f0&color=334155&bold=true`;
+  return buildUiAvatarsUrl(name);
 }
 
 /**
@@ -42,9 +44,7 @@ export function buildLogoImgSources(logoUrl: string | null | undefined, company:
   }
 
   const name = company.trim() || 'Co';
-  out.push(
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=128&background=e2e8f0&color=334155&bold=true`
-  );
+  out.push(buildUiAvatarsUrl(name));
 
   return [...new Set(out)];
 }
