@@ -39,7 +39,7 @@ function MetaPill({
   return (
     <span
       className={cn(
-        'inline-flex max-w-full items-center gap-2 rounded-md border border-border/80 bg-background/90 px-2.5 py-1.5 text-xs shadow-sm',
+        'inline-flex max-w-full items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs',
         className
       )}
       title={`${label}: ${value}`}
@@ -62,7 +62,7 @@ export function JobDetailHeader({ job, className }: JobDetailHeaderProps) {
   return (
     <header
       className={cn(
-        'shrink-0 border-b border-border bg-gradient-to-b from-muted/40 via-card to-card px-4 py-4 max-lg:px-4 sm:px-6 sm:py-5 lg:px-6',
+        'shrink-0 border-b border-border bg-secondary px-4 py-4 max-lg:px-4 sm:px-6 sm:py-5 lg:px-6',
         className
       )}
     >
@@ -77,7 +77,7 @@ export function JobDetailHeader({ job, className }: JobDetailHeaderProps) {
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <JobRecencyBadge postedAtMs={job.postedAtMs} className="normal-case" />
               {workplace && (
-                <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
                   {workplace}
                 </span>
               )}
@@ -111,7 +111,7 @@ export function JobDetailHeader({ job, className }: JobDetailHeaderProps) {
                   icon={DollarSign}
                   label="Salary"
                   value={job.salary}
-                  className="border-primary/20 bg-primary/5"
+                  className="border-border bg-muted/50"
                 />
               )}
               {job.type?.trim() && (

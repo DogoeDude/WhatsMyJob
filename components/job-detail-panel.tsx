@@ -5,6 +5,7 @@ import { ArrowLeft, ExternalLink, Loader2, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppSession } from '@/lib/use-app-session';
 import { isPersistedJobId } from '@/lib/jobs/constants';
+import { isShortJobDescription } from '@/lib/jobs/description';
 import { JobDescriptionContent, JobDetailList } from '@/components/job-description-content';
 import { JobDetailHeader } from '@/components/job-detail-header';
 import { JobsPaneHeader } from '@/components/jobs-board-layout';
@@ -47,7 +48,7 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
 
   useEffect(() => {
     if (!job) return;
-    if (job.description?.trim()) return;
+    if (!isShortJobDescription(job.description)) return;
 
     let cancelled = false;
     setLoadingDetails(true);
@@ -56,8 +57,16 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
       try {
         const res = await fetch(`/api/jobs/${job.id}`);
         const data = (await res.json()) as { job?: Job };
-        if (!cancelled && res.ok && data.job) {
-          setDetails(data.job);
+        if (!cancelled && res.ok && data.job?.description?.trim()) {
+          setDetails((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  ...data.job,
+                  description: data.job!.description,
+                }
+              : data.job!
+          );
         }
       } catch {
         /* keep list preview */
@@ -118,7 +127,7 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
             {display.tags.map((tag, index) => (
               <span
                 key={`${display.id}-tag-${index}`}
-                className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground"
+                className="rounded-full bg-muted/80 px-2.5 py-0.5 text-xs text-muted-foreground ring-1 ring-border/40"
               >
                 {tag}
               </span>
@@ -157,7 +166,7 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
       </div>
 
       {display.applyUrl ? (
-        <div className="shrink-0 border-t border-border bg-muted/25 px-4 py-3 sm:px-5">
+        <div className="shrink-0 border-t border-border bg-secondary px-4 py-3 sm:px-5">
           <Button
             type="button"
             className="w-full"

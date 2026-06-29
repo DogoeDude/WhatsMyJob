@@ -13,7 +13,7 @@ export function StatCard({ label, value, hint, icon: Icon, className }: StatCard
   return (
     <div
       className={cn(
-        'rounded-lg border border-border bg-card p-5',
+        'win-surface rounded-lg p-5',
         className
       )}
     >

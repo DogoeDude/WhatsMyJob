@@ -1,5 +1,8 @@
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
-import { envInt } from '@/lib/jobs/sync-config';
+import { fetchJobDescription } from '@/lib/jobs/fetch-job-description';
+import { mapWithConcurrency } from '@/lib/jobs/scrape/extract';
+import { envEnabled, envInt } from '@/lib/jobs/sync-config';
+import { stripHtml } from '@/lib/jobs/utils';
 
 type JobsBaseJob = {
   id: string;
@@ -129,6 +132,13 @@ export const jobsbaseProvider: JobProvider = {
       throw new Error('Jobs Base returned no jobs for configured countries');
     }
 
-    return merged;
+    if (!envEnabled('JOBSBASE_FETCH_DESCRIPTIONS', true)) {
+      return merged;
+    }
+
+    return mapWithConcurrency(merged, 5, async (job) => {
+      const description = await fetchJobDescription('jobsbase', job.externalId);
+      return description ? { ...job, description: stripHtml(description) } : job;
+    });
   },
 };

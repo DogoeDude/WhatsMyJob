@@ -22,14 +22,12 @@ export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps)
       onClick={onJobSelect}
       onKeyDown={(e) => e.key === 'Enter' && onJobSelect()}
       className={cn(
-        'group flex w-full cursor-pointer gap-3 text-left transition-colors active:bg-muted/60',
+        'group mx-2 my-0.5 flex w-[calc(100%-1rem)] cursor-pointer gap-3 rounded-md border border-transparent border-l-[3px] border-l-transparent text-left transition-colors duration-100',
         compact
-          ? 'min-h-[4.25rem] px-3 py-4 sm:px-4 max-lg:touch-manipulation lg:py-3.5'
+          ? 'min-h-[4.25rem] px-3 py-3 sm:px-4 max-lg:touch-manipulation'
           : 'gap-4 px-4 py-4 sm:px-5',
-        isSelected
-          ? 'bg-primary/5 ring-1 ring-inset ring-primary/25'
-          : 'hover:bg-muted/50',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+        isSelected ? 'win-list-selected' : 'win-list-hover',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-card'
       )}
     >
       <CompanyLogo company={job.company} logoUrl={job.logoUrl} size={compact ? 'sm' : 'md'} />
@@ -76,7 +74,7 @@ export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps)
             {job.tags.slice(0, 3).map((tag, index) => (
               <span
                 key={`${job.id}-tag-${index}`}
-                className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                className="rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
               >
                 {tag}
               </span>

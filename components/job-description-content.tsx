@@ -80,10 +80,10 @@ function BlockList({ items }: { items: ListItem[] }) {
           style={{ marginLeft: `${item.depth * 1.25}rem` }}
         >
           <span
-            className="mt-2 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/12"
+            className="mt-2 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted"
             aria-hidden
           >
-            <Check className="h-2.5 w-2.5 text-primary" strokeWidth={3} />
+            <Check className="h-2.5 w-2.5 text-foreground" strokeWidth={3} />
           </span>
           <span className="min-w-0 flex-1">
             <InlineContent spans={parseInlineSpans(item.text)} />
@@ -273,10 +273,10 @@ export function JobDetailList({ title, items, variant = 'requirements' }: JobDet
             className="flex gap-3 text-[15px] leading-relaxed text-foreground/85"
           >
             <span
-              className="mt-2 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/12"
+              className="mt-2 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted"
               aria-hidden
             >
-              <Check className="h-2.5 w-2.5 text-primary" strokeWidth={3} />
+              <Check className="h-2.5 w-2.5 text-foreground" strokeWidth={3} />
             </span>
             <span className="min-w-0 flex-1">
               <InlineContent spans={parseInlineSpans(item)} />

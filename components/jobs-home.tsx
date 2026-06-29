@@ -269,15 +269,15 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
         }
         if (!append) {
           setListVersion((v) => v + 1);
-          if (data.sources) setSourceFacets(data.sources);
-          if (data.types) {
+          if (data.sources?.length) setSourceFacets(data.sources);
+          if (data.types?.length) {
             setJobTypes(
               Array.isArray(data.types)
                 ? data.types.filter((t): t is string => typeof t === 'string')
                 : []
             );
           }
-          if (data.locationSuggestions) {
+          if (data.locationSuggestions?.length) {
             setLocationSuggestions(data.locationSuggestions);
           }
           const providerNote = formatProviderErrors(data.providerErrors);
@@ -340,13 +340,19 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
           totalMatching?: number;
         };
         if (!res.ok) return;
-        setSourceFacets(data.sources ?? []);
-        setJobTypes(
-          Array.isArray(data.types)
-            ? data.types.filter((t): t is string => typeof t === 'string')
-            : []
-        );
-        setLocationSuggestions(data.locationSuggestions ?? []);
+        if (data.sources?.length) {
+          setSourceFacets(data.sources);
+        }
+        if (data.types?.length) {
+          setJobTypes(
+            Array.isArray(data.types)
+              ? data.types.filter((t): t is string => typeof t === 'string')
+              : []
+          );
+        }
+        if (data.locationSuggestions?.length) {
+          setLocationSuggestions(data.locationSuggestions);
+        }
         if (typeof data.totalMatching === 'number') {
           setTotalMatching(data.totalMatching);
           setHasMore((prev) => {
@@ -606,6 +612,8 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
     },
     isLoading,
     isRefreshing,
+    boardsLoading:
+      (isLoading || isListUpdating || isRefreshing) && sourceFacets.length === 0,
     jobsCount: jobs.length,
   };
 
@@ -613,7 +621,7 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
     <JobsPaneHeader>
       <span className="flex min-w-0 items-center gap-2 truncate text-xs font-medium text-foreground">
         {isListUpdating && (
-          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" aria-hidden />
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
         )}
         {countLabel() != null ? (
           <>
@@ -675,7 +683,7 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
   return (
     <PageShell appLayout>
       <PageContent wide fillViewport>
-        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden border border-border bg-background">
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-lg win-shell lg:m-2">
           {mobileView === 'list' && (
             <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2.5 lg:hidden">
               <Button
@@ -710,7 +718,7 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
           </Sheet>
 
           {infoMessage && !error && (
-            <p className="shrink-0 border-b border-border bg-primary/5 px-3 py-1.5 text-center text-xs text-muted-foreground">
+            <p className="shrink-0 border-b border-border bg-secondary px-3 py-1.5 text-center text-xs text-muted-foreground">
               {infoMessage}
             </p>
           )}
@@ -757,10 +765,10 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
               >
                 {isListUpdating && (
                   <div
-                    className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-primary/20"
+                    className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-border"
                     aria-hidden
                   >
-                    <div className="h-full w-1/3 animate-pulse bg-primary" />
+                    <div className="h-full w-1/3 animate-pulse bg-muted-foreground/40" />
                   </div>
                 )}
                 <JobsFlatVirtualList
@@ -839,10 +847,10 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
                   >
                     {isListUpdating && (
                       <div
-                        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-primary/20"
+                        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-border"
                         aria-hidden
                       >
-                        <div className="h-full w-1/3 animate-pulse bg-primary" />
+                        <div className="h-full w-1/3 animate-pulse bg-muted-foreground/40" />
                       </div>
                     )}
                     <JobsFlatVirtualList

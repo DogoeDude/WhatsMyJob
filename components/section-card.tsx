@@ -16,9 +16,9 @@ export function SectionCard({
   headerAction,
 }: SectionCardProps) {
   return (
-    <div className={cn('rounded-lg border border-border bg-card', className)}>
+    <div className={cn('win-surface overflow-hidden rounded-lg', className)}>
       {(title || headerAction) && (
-        <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 border-b border-border bg-secondary px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
             {description && (

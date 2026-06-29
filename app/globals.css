@@ -3,75 +3,99 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Windows 11 Fluent — neutral graphite palette, no saturated accent blue */
 :root {
-  --background: oklch(0.988 0.002 90);
-  --foreground: oklch(0.2 0.01 90);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 90);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 90);
-  --primary: oklch(0.35 0.04 250);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.004 90);
-  --secondary-foreground: oklch(0.28 0.01 90);
-  --muted: oklch(0.955 0.004 90);
-  --muted-foreground: oklch(0.48 0.01 90);
-  --accent: oklch(0.42 0.08 200);
-  --accent-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.52 0.2 25);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9 0.006 90);
-  --input: oklch(0.92 0.006 90);
-  --ring: oklch(0.42 0.08 200);
-  --chart-1: oklch(0.35 0.04 250);
-  --chart-2: oklch(0.42 0.08 200);
-  --chart-3: oklch(0.55 0.06 150);
-  --chart-4: oklch(0.5 0.05 60);
-  --chart-5: oklch(0.45 0.04 30);
+  --font-sans-app: 'Segoe UI Variable', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --font-mono-app: 'Cascadia Mono', 'Cascadia Code', ui-monospace, monospace;
+
+  --background: #f5f5f5;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+
+  --primary: #2b2b2b;
+  --primary-hover: #1a1a1a;
+  --primary-foreground: #ffffff;
+  --secondary: #fafafa;
+  --secondary-foreground: #1a1a1a;
+  --muted: #efefef;
+  --muted-foreground: #6b6b6b;
+  --accent: #ebebeb;
+  --accent-foreground: #1a1a1a;
+
+  --destructive: #c42b1c;
+  --destructive-foreground: #ffffff;
+  --border: #e0e0e0;
+  --input: #ffffff;
+  --ring: #9a9a9a;
+
+  --win-subtle: rgba(0, 0, 0, 0.04);
+  --win-hover: rgba(0, 0, 0, 0.05);
+  --win-selected: #e8e8e8;
+  --win-selected-border: #6b6b6b;
+  --win-stroke: rgba(0, 0, 0, 0.058);
+  --win-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --win-shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  --chart-1: #4a5568;
+  --chart-2: #107c10;
+  --chart-3: #8764b8;
+  --chart-4: #ca5010;
+  --chart-5: #d13438;
   --radius: 0.5rem;
-  --sidebar: oklch(0.988 0.002 90);
-  --sidebar-foreground: oklch(0.2 0.01 90);
-  --sidebar-primary: oklch(0.35 0.04 250);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.955 0.004 90);
-  --sidebar-accent-foreground: oklch(0.28 0.01 90);
-  --sidebar-border: oklch(0.9 0.006 90);
-  --sidebar-ring: oklch(0.42 0.08 200);
+
+  --sidebar: #fafafa;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #2b2b2b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efefef;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e0e0e0;
+  --sidebar-ring: #9a9a9a;
 }
 
 .dark {
-  --background: oklch(0.16 0.008 90);
-  --foreground: oklch(0.95 0.004 90);
-  --card: oklch(0.19 0.008 90);
-  --card-foreground: oklch(0.95 0.004 90);
-  --popover: oklch(0.19 0.008 90);
-  --popover-foreground: oklch(0.95 0.004 90);
-  --primary: oklch(0.78 0.04 250);
-  --primary-foreground: oklch(0.16 0.008 90);
-  --secondary: oklch(0.24 0.008 90);
-  --secondary-foreground: oklch(0.95 0.004 90);
-  --muted: oklch(0.24 0.008 90);
-  --muted-foreground: oklch(0.65 0.01 90);
-  --accent: oklch(0.72 0.1 200);
-  --accent-foreground: oklch(0.16 0.008 90);
-  --destructive: oklch(0.6 0.2 25);
-  --destructive-foreground: oklch(0.95 0.004 90);
-  --border: oklch(0.28 0.008 90);
-  --input: oklch(0.28 0.008 90);
-  --ring: oklch(0.72 0.1 200);
-  --chart-1: oklch(0.78 0.04 250);
-  --chart-2: oklch(0.72 0.1 200);
-  --chart-3: oklch(0.7 0.08 150);
-  --chart-4: oklch(0.68 0.06 60);
-  --chart-5: oklch(0.65 0.05 30);
-  --sidebar: oklch(0.18 0.008 90);
-  --sidebar-foreground: oklch(0.95 0.004 90);
-  --sidebar-primary: oklch(0.78 0.04 250);
-  --sidebar-primary-foreground: oklch(0.16 0.008 90);
-  --sidebar-accent: oklch(0.24 0.008 90);
-  --sidebar-accent-foreground: oklch(0.95 0.004 90);
-  --sidebar-border: oklch(0.28 0.008 90);
-  --sidebar-ring: oklch(0.72 0.1 200);
+  --background: #1f1f1f;
+  --foreground: rgba(255, 255, 255, 0.95);
+  --card: #2b2b2b;
+  --card-foreground: rgba(255, 255, 255, 0.95);
+  --popover: #2b2b2b;
+  --popover-foreground: rgba(255, 255, 255, 0.95);
+
+  --primary: #e8e8e8;
+  --primary-hover: #ffffff;
+  --primary-foreground: #1a1a1a;
+  --secondary: #2b2b2b;
+  --secondary-foreground: rgba(255, 255, 255, 0.95);
+  --muted: #333333;
+  --muted-foreground: #a3a3a3;
+  --accent: #383838;
+  --accent-foreground: rgba(255, 255, 255, 0.95);
+
+  --destructive: #ff99a4;
+  --destructive-foreground: #1a0000;
+  --border: #404040;
+  --input: #2b2b2b;
+  --ring: #8a8a8a;
+
+  --win-subtle: rgba(255, 255, 255, 0.05);
+  --win-hover: rgba(255, 255, 255, 0.08);
+  --win-selected: rgba(255, 255, 255, 0.1);
+  --win-selected-border: #a3a3a3;
+  --win-stroke: rgba(255, 255, 255, 0.08);
+  --win-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --win-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+  --sidebar: #272727;
+  --sidebar-foreground: rgba(255, 255, 255, 0.95);
+  --sidebar-primary: #e8e8e8;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #333333;
+  --sidebar-accent-foreground: rgba(255, 255, 255, 0.95);
+  --sidebar-border: #404040;
+  --sidebar-ring: #8a8a8a;
 }
 
 @theme inline {
@@ -103,8 +127,8 @@
   --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
-  --radius-xl: calc(var(--radius) + 6px);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -126,16 +150,69 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
   ::selection {
-    background: oklch(0.42 0.08 200 / 0.2);
+    background: rgba(0, 0, 0, 0.12);
   }
 }
 
 @layer utilities {
+  /* Flat Win11 canvas — no colored gradients */
+  .win-canvas {
+    background-color: var(--background);
+  }
+
+  /* Title bar / shell chrome */
+  .win-mica {
+    background-color: color-mix(in srgb, var(--card) 82%, var(--background));
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--win-shadow);
+    backdrop-filter: blur(40px) saturate(1.8);
+    -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  }
+
+  /* Settings-style white panels */
+  .win-surface {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--win-shadow);
+  }
+
+  /* Main app window */
+  .win-shell {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--win-shadow-lg);
+  }
+
+  /* Win11 nav rail / segmented control track */
+  .win-nav-track {
+    background-color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* Active segment in nav */
+  .win-nav-pill-active {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  /* List item hover */
+  .win-list-hover:hover {
+    background-color: var(--win-hover);
+  }
+
+  /* List item selected (Explorer / Settings style) */
+  .win-list-selected {
+    background-color: var(--win-selected);
+    border-left: 3px solid var(--win-selected-border);
+  }
+
   .page-enter {
-    animation: page-enter 0.25s ease-out both;
+    animation: page-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   @keyframes page-enter {
@@ -148,10 +225,16 @@
   }
 
   .filter-chip {
-    @apply inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted;
+    @apply inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground transition-colors;
+  }
+
+  .filter-chip:hover {
+    background-color: var(--win-hover);
   }
 
   .filter-chip-active {
-    @apply border-foreground/20 bg-foreground text-background hover:bg-foreground/90;
+    background-color: var(--win-selected);
+    border-color: var(--border);
+    color: var(--foreground);
   }
 }

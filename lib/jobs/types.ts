@@ -15,6 +15,8 @@ export type Job = {
   applyUrl?: string;
   /** Provider id, e.g. remotive, arbeitnow */
   sourceId?: string;
+  /** Board-native job id (for on-demand description fetch) */
+  externalId?: string;
   /** Display name of the job board */
   source?: string;
   sourceWebsite?: string;

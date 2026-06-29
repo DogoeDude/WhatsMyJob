@@ -32,7 +32,7 @@ export function JobsPane({
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card',
+        'flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-transparent',
         className
       )}
     >
@@ -66,7 +66,7 @@ export function JobsPaneHeader({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-between gap-2 border-b border-border/80 px-3 py-2',
+        'flex shrink-0 items-center justify-between gap-2 border-b border-border bg-secondary px-3 py-2',
         className
       )}
     >

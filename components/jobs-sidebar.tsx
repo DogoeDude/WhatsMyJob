@@ -30,6 +30,7 @@ type JobsSidebarProps = {
   onRefresh: () => void;
   isLoading: boolean;
   isRefreshing?: boolean;
+  boardsLoading?: boolean;
   jobsCount: number;
   className?: string;
   embedded?: boolean;
@@ -55,6 +56,7 @@ export function JobsSidebar({
   onRefresh,
   isLoading,
   isRefreshing = false,
+  boardsLoading = false,
   jobsCount,
   className,
   embedded = false,
@@ -73,7 +75,7 @@ export function JobsSidebar({
     <div className={cn('pb-6', embedded && 'min-h-0')}>
       <div className="space-y-4 px-4 pt-4">
         <div className="space-y-2">
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
               <Search
                 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -91,12 +93,13 @@ export function JobsSidebar({
             </div>
             <Button
               type="button"
-              className="h-11 shrink-0 rounded-xl px-4"
+              size="icon"
+              className="size-9 shrink-0"
               onClick={onSearchSubmit}
               disabled={disabled}
+              aria-label="Search jobs"
             >
-              <Search className="h-4 w-4 sm:mr-0" />
-              <span className="hidden sm:inline">Search</span>
+              <Search className="h-4 w-4" />
             </Button>
           </div>
           {searchPending && (
@@ -155,6 +158,7 @@ export function JobsSidebar({
         onSuggestionSelect={onFilterSuggestion}
         activeSearch={appliedSearch}
         disabled={disabled}
+        boardsLoading={boardsLoading}
       />
     </div>
   );
@@ -163,7 +167,7 @@ export function JobsSidebar({
     return (
       <div
         className={cn(
-          'min-h-0 overflow-y-auto bg-gradient-to-b from-muted/20 to-background',
+          'min-h-0 overflow-y-auto bg-secondary',
           className
         )}
       >
@@ -176,16 +180,16 @@ export function JobsSidebar({
     <JobsPane
       scrollRegion="filters"
       className={cn(
-        'h-full min-h-0 bg-gradient-to-b from-card via-card to-muted/25',
+        'h-full min-h-0 bg-secondary',
         resizable
           ? 'border-0'
           : 'border-b border-border lg:border-b-0 lg:border-r',
         className
       )}
       header={
-        <JobsPaneHeader className="border-b border-border/60 bg-gradient-to-r from-primary/[0.07] to-transparent px-4 py-3.5">
+        <JobsPaneHeader className="border-b border-border bg-secondary px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/25">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-foreground">
               <SlidersHorizontal className="h-4 w-4" aria-hidden />
             </div>
             <div>

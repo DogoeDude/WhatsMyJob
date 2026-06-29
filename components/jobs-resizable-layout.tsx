@@ -40,14 +40,16 @@ export function JobsResizableLayout({
   className,
 }: JobsResizableLayoutProps) {
   return (
-    <div className={cn('flex h-full min-h-0 w-full flex-1', className)}>
-      <aside className="flex h-full w-[min(100%,18rem)] min-w-[14rem] max-w-[20rem] shrink-0 flex-col overflow-hidden border-r border-border">
+    <div className={cn('flex h-full min-h-0 w-full flex-1 gap-2 p-2 sm:p-3', className)}>
+      <aside className="win-surface flex h-full w-[min(100%,18rem)] min-w-[14rem] max-w-[20rem] shrink-0 flex-col overflow-hidden rounded-lg">
         {filters}
       </aside>
-      <div className="flex min-h-0 min-w-[12rem] flex-[0.9] flex-col overflow-hidden border-r border-border">
+      <div className="win-surface flex min-h-0 min-w-[12rem] flex-[0.9] flex-col overflow-hidden rounded-lg">
         {list}
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card">{detail}</div>
+      <div className="win-surface flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg">
+        {detail}
+      </div>
     </div>
   );
 }

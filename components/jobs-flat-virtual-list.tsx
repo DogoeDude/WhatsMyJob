@@ -6,7 +6,7 @@ import { JobCard } from '@/components/job-card';
 import type { Job } from '@/lib/jobs/types';
 
 /** Compact cards with title, company, meta — taller than a single line. */
-const ROW_HEIGHT_ESTIMATE = 116;
+const ROW_HEIGHT_ESTIMATE = 124;
 /** Default browse loads ≤40 rows; keep a plain list to avoid virtual measure glitches. */
 const VIRTUALIZE_MIN = 80;
 
@@ -24,7 +24,7 @@ function SimpleJobList({
   onJobSelect,
 }: Omit<JobsFlatVirtualListProps, 'freezeLayout'>) {
   return (
-    <ul className="divide-y divide-border">
+    <ul className="space-y-0.5 p-1">
       {jobs.map((job) => (
         <li key={job.id}>
           <JobCard
@@ -109,7 +109,7 @@ export function JobsFlatVirtualList({
   return (
     <div ref={anchorRef}>
       <ul
-        className="relative w-full divide-y divide-border"
+        className="relative w-full p-1"
         style={{ height: `${virtualizer.getTotalSize()}px` }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -120,7 +120,7 @@ export function JobsFlatVirtualList({
               key={job.id}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
-              className="absolute left-0 top-0 w-full border-b border-border"
+              className="absolute left-0 top-0 w-full"
               style={{
                 transform: `translateY(${virtualRow.start}px)`,
               }}

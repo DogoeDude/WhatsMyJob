@@ -4,6 +4,7 @@ import { formatPostedDate, parseJsonStringArray } from '@/lib/jobs/utils';
 
 type DbJob = {
   id: string;
+  externalId: string;
   title: string;
   company: string;
   location: string;
@@ -37,6 +38,7 @@ export function jobListingToJob(row: DbJob): Job {
     applyUrl: row.applyUrl ?? undefined,
     logoUrl: row.logoUrl ?? undefined,
     sourceId: row.source.id,
+    externalId: row.externalId,
     source: row.source.name,
     sourceWebsite: meta?.website,
   };

@@ -17,7 +17,7 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <section className={cn('border-b border-border bg-muted/20', className)}>
+    <section className={cn('win-mica border-b-0', className)}>
       <div className={`${pageContainerClass} py-8 sm:py-10`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>

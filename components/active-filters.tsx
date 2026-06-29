@@ -88,9 +88,9 @@ export function ActiveFilters({
 
   if (variant === 'sidebar') {
     return (
-      <div className="mx-4 rounded-xl bg-gradient-to-br from-primary/12 via-primary/5 to-transparent p-3 ring-1 ring-primary/15">
+      <div className="mx-4 rounded-lg border border-border bg-secondary p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
             Applied
           </span>

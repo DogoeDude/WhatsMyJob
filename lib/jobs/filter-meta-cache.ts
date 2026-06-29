@@ -1,8 +1,8 @@
 import { unstable_cache } from 'next/cache';
 import { isDatabaseConfigured } from '@/lib/prisma';
 import type { JobListFilters } from '@/lib/jobs/filters';
-import { mergeSourceFacetsWithSelection, type SourceFacet } from '@/lib/jobs/filters';
-import { JOB_SOURCES_CATALOG } from '@/lib/jobs/sources-catalog';
+import type { SourceFacet } from '@/lib/jobs/filters';
+import { buildActiveSourceFacetsFromDb } from '@/lib/jobs/source-facets';
 import {
   countJobListings,
   getDistinctJobTypes,
@@ -17,16 +17,11 @@ export type JobsFilterMeta = {
   locationSuggestions: string[];
 };
 
-function mergeFacets(dbFacets: { sourceId: string; count: number }[]): SourceFacet[] {
-  const counts = new Map<string, number>();
-  for (const f of dbFacets) counts.set(f.sourceId, f.count);
-
-  return JOB_SOURCES_CATALOG.map((meta) => ({
-    id: meta.id,
-    name: meta.name,
-    website: meta.website,
-    count: counts.get(meta.id) ?? 0,
-  })).filter((f) => f.count > 0);
+function mergeFacets(
+  dbFacets: { sourceId: string; count: number }[],
+  selectedSourceIds: string[]
+): SourceFacet[] {
+  return buildActiveSourceFacetsFromDb(dbFacets, selectedSourceIds);
 }
 
 export function filtersCacheKey(filters: JobListFilters): string {
@@ -42,7 +37,7 @@ export function filtersCacheKey(filters: JobListFilters): string {
 async function loadJobsFilterMeta(filters: JobListFilters): Promise<JobsFilterMeta> {
   if (!isDatabaseConfigured()) {
     return {
-      sources: [],
+      sources: buildActiveSourceFacetsFromDb([], filters.sourceIds),
       types: [],
       totalMatching: 0,
       locationSuggestions: [],
@@ -57,7 +52,7 @@ async function loadJobsFilterMeta(filters: JobListFilters): Promise<JobsFilterMe
   ]);
 
   return {
-    sources: mergeSourceFacetsWithSelection(mergeFacets(facets), filters.sourceIds),
+    sources: mergeFacets(facets, filters.sourceIds),
     types,
     totalMatching,
     locationSuggestions,

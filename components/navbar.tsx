@@ -51,7 +51,7 @@ function Brand() {
       prefetch
       className="group flex min-w-0 items-center gap-2.5 rounded-xl py-1 pr-1 transition-opacity hover:opacity-90 sm:gap-3"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 transition-transform group-hover:scale-[1.02] sm:h-11 sm:w-11">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-sm sm:h-10 sm:w-10">
         <Briefcase className="h-5 w-5 sm:h-[1.35rem] sm:w-[1.35rem]" aria-hidden />
       </span>
       <span className="flex min-w-0 flex-col leading-tight">
@@ -78,7 +78,7 @@ function HeaderCenterNav({
 
   return (
     <nav
-      className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-2xl bg-muted/50 p-1 ring-1 ring-border/60 sm:flex"
+      className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-0.5 rounded-lg win-nav-track p-0.5 sm:flex"
       aria-label="Main navigation"
     >
       {links.map((link) => {
@@ -90,10 +90,10 @@ function HeaderCenterNav({
             href={link.href}
             prefetch
             className={cn(
-              'inline-flex min-h-10 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
+              'inline-flex min-h-9 items-center gap-2 rounded-md px-4 py-1.5 text-sm font-normal transition-colors',
               active
-                ? 'bg-background text-foreground shadow-sm ring-1 ring-border/70'
-                : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
+                ? 'win-nav-pill-active font-medium text-foreground'
+                : 'text-muted-foreground hover:bg-[var(--win-hover)] hover:text-foreground'
             )}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -117,7 +117,7 @@ function MobileBottomNav({
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 lg:hidden dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.45)]"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 shadow-[var(--win-shadow-lg)] backdrop-blur-xl lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="Mobile navigation"
     >
@@ -132,13 +132,13 @@ function MobileBottomNav({
               prefetch
               className={cn(
                 'flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl px-2 transition-colors active:scale-[0.98]',
-                active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <span
                 className={cn(
-                  'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-                  active && 'bg-primary/10'
+                  'flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+                  active && 'bg-[var(--win-selected)]'
                 )}
               >
                 <Icon className={cn('h-5 w-5', active && 'stroke-[2.25]')} aria-hidden />
@@ -181,13 +181,13 @@ function UserAccountMenu({
         <button
           type="button"
           className={cn(
-            'inline-flex min-h-11 max-w-[min(100%,14rem)] items-center gap-2 rounded-xl border border-border/80 bg-background/80 py-1 pl-1 pr-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 sm:max-w-[16rem] sm:gap-2.5 sm:pr-3.5',
-            profileActive && 'border-primary/30 bg-primary/5'
+            'inline-flex min-h-11 max-w-[min(100%,14rem)] items-center gap-2 rounded-md border border-border bg-card py-1 pl-1 pr-3 transition-colors hover:bg-[var(--win-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:max-w-[16rem] sm:gap-2.5 sm:pr-3.5',
+            profileActive && 'bg-[var(--win-selected)]'
           )}
           aria-label="Account menu"
         >
           <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
-            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+            <AvatarFallback className="bg-muted text-xs font-medium text-foreground">
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -201,7 +201,7 @@ function UserAccountMenu({
           <p className="truncate text-sm font-medium">{displayName}</p>
           <p className="truncate text-xs font-normal text-muted-foreground">{email}</p>
           {isAdmin && (
-            <p className="mt-1 text-xs font-medium text-primary">Administrator</p>
+            <p className="mt-1 text-xs font-medium text-muted-foreground">Administrator</p>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -310,10 +310,10 @@ function MobileGuestSheet({
                 prefetch
                 onClick={() => onOpenChange(false)}
                 className={cn(
-                  'flex min-h-12 items-center gap-3 rounded-xl px-4 text-base font-medium transition-colors',
+                  'flex min-h-11 items-center gap-3 rounded-md border-l-[3px] border-l-transparent px-4 text-base transition-colors',
                   active
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-foreground hover:bg-muted'
+                    ? 'win-list-selected font-medium'
+                    : 'text-foreground hover:bg-[var(--win-hover)]'
                 )}
               >
                 <Icon className="h-5 w-5 shrink-0" />
@@ -383,7 +383,7 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-background/90 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
+      <header className="win-mica sticky top-0 z-50 w-full border-b-0">
         <div className={cn(siteHeaderInnerClass, 'relative')}>
           <Brand />
 
@@ -397,7 +397,7 @@ export function Navbar() {
                 className="flex h-11 items-center gap-2 rounded-xl border border-border/80 bg-muted/30 px-3 text-sm text-muted-foreground"
                 aria-busy="true"
               >
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                 Loading…
               </div>
             ) : session ? (

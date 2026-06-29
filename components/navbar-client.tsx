@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 function NavbarSkeleton() {
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-background/90 backdrop-blur-xl">
+      <header className="win-mica sticky top-0 z-50 w-full">
         <div className={siteHeaderInnerClass}>
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 animate-pulse rounded-xl bg-muted sm:h-11 sm:w-11" />

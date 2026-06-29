@@ -1,5 +1,6 @@
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
 import { envInt } from '@/lib/jobs/sync-config';
+import { stripHtml } from '@/lib/jobs/utils';
 
 type WorkbeamJob = {
   slug: string;
@@ -16,6 +17,7 @@ type WorkbeamJob = {
   salaryCurrency?: string | null;
   applyUrl?: string;
   postedAt?: string;
+  description?: string;
 };
 
 type WorkbeamResponse = {
@@ -50,7 +52,7 @@ function mapJob(job: WorkbeamJob): NormalizedJobInput {
     location: job.remote ? `Remote${job.location ? ` · ${job.location}` : ''}` : job.location ?? 'Remote',
     salary: formatSalary(job),
     type: job.employmentType?.replace(/_/g, ' ') || (job.remote ? 'Remote' : 'Full-time'),
-    description: '',
+    description: stripHtml(job.description ?? ''),
     tags,
     applyUrl: job.applyUrl,
     postedAt,

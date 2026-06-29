@@ -43,14 +43,14 @@ function HighlightCard({
       className={cn(
         'flex gap-3 rounded-lg border p-3',
         emphasize
-          ? 'border-primary/20 bg-primary/5'
+          ? 'border-border bg-secondary'
           : 'border-border bg-muted/30'
       )}
     >
       <span
         className={cn(
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-md',
-          emphasize ? 'bg-primary/10 text-primary' : 'bg-background text-muted-foreground'
+          emphasize ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground'
         )}
       >
         <Icon className="h-4 w-4" aria-hidden />

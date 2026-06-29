@@ -33,6 +33,8 @@ type JobFiltersProps = {
   disabled?: boolean;
   activeSearch?: string;
   variant?: 'bar' | 'sidebar';
+  /** Sidebar job-board list still loading facet counts */
+  boardsLoading?: boolean;
 };
 
 function SourceRow({
@@ -52,7 +54,7 @@ function SourceRow({
     <label
       className={cn(
         'flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors',
-        checked ? 'bg-primary/8' : 'hover:bg-muted/50',
+        checked ? 'bg-[var(--win-selected)]' : 'hover:bg-[var(--win-hover)]',
         disabled && 'cursor-not-allowed opacity-50'
       )}
     >
@@ -61,9 +63,23 @@ function SourceRow({
         disabled={disabled}
         onCheckedChange={(v) => onCheckedChange(v === true)}
       />
-      <span className="min-w-0 flex-1 truncate text-sm text-foreground">{label}</span>
+      <span
+        className={cn(
+          'min-w-0 flex-1 truncate text-sm',
+          count === 0 && !checked ? 'text-muted-foreground' : 'text-foreground'
+        )}
+      >
+        {label}
+      </span>
       {count != null && (
-        <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+        <span
+          className={cn(
+            'shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums',
+            count === 0
+              ? 'bg-muted/60 text-muted-foreground/80'
+              : 'bg-muted text-muted-foreground'
+          )}
+        >
           {count}
         </span>
       )}
@@ -80,6 +96,7 @@ export function JobFilters({
   disabled,
   activeSearch = '',
   variant = 'bar',
+  boardsLoading = false,
 }: JobFiltersProps) {
   const sidebar = variant === 'sidebar';
   const toggleSource = (id: string, checked: boolean) => {
@@ -235,9 +252,13 @@ export function JobFilters({
           }
         >
           <div className={filterPanelClass}>
-            {sources.length === 0 ? (
+            {boardsLoading ? (
               <p className="py-3 text-center text-xs text-muted-foreground">
-                Job board list loads with listings…
+                Loading job boards…
+              </p>
+            ) : sources.length === 0 ? (
+              <p className="py-3 text-center text-xs text-muted-foreground">
+                No job boards configured. Check your environment variables.
               </p>
             ) : (
               sourceListSidebar

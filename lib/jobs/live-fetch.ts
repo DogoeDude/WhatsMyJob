@@ -26,6 +26,7 @@ function normalizedToJob(
     postedAtMs: input.postedAt?.getTime() ?? 0,
     applyUrl: input.applyUrl,
     sourceId,
+    externalId: input.externalId,
     source: sourceName,
     sourceWebsite: meta?.website,
     logoUrl: input.logoUrl,

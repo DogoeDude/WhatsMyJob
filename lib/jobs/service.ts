@@ -1,13 +1,12 @@
 import { cache } from 'react';
 import {
   applyJobFilters,
-  buildSourceFacets,
-  mergeSourceFacetsWithSelection,
   statsFromFilteredJobs,
   type JobListFilters,
   type SourceFacet,
 } from '@/lib/jobs/filters';
 import { getJobsFilterMetaCached } from '@/lib/jobs/filter-meta-cache';
+import { buildActiveSourceFacetsFromJobs } from '@/lib/jobs/source-facets';
 import { enrichJobsWithLogos, clearLogoCache } from '@/lib/jobs/enrich-logos';
 import { isCatalogStale } from '@/lib/jobs/catalog-freshness';
 import { isDefaultBrowseFilters } from '@/lib/jobs/default-filters';
@@ -80,7 +79,10 @@ export async function getJobsForApp(
         const { jobs, skip } = await searchJobListings(filters, limit, offset);
         const enrichedJobs = await enrichJobsWithLogos(jobs);
 
-        let sources: SourceFacet[] = [];
+        let sources: SourceFacet[] = buildActiveSourceFacetsFromJobs(
+          enrichedJobs,
+          filters.sourceIds
+        );
         let types: string[] = [];
         let locationSuggestions: string[] = [];
         let totalMatching = enrichedJobs.length;
@@ -88,7 +90,7 @@ export async function getJobsForApp(
 
         if (includeMeta) {
           const meta = await getJobsFilterMeta(filters);
-          sources = meta.sources;
+          sources = meta.sources.length > 0 ? meta.sources : sources;
           types = meta.types;
           locationSuggestions = meta.locationSuggestions;
           totalMatching = meta.totalMatching;
@@ -128,10 +130,7 @@ export async function getJobsForApp(
       : 150;
   const { jobs: livePool, providerErrors } = await fetchLiveJobs(livePoolSize);
   const facetBase = applyJobFilters(livePool, { ...filters, sourceIds: [] });
-  const sources = mergeSourceFacetsWithSelection(
-    buildSourceFacets(facetBase),
-    filters.sourceIds
-  );
+  const sources = buildActiveSourceFacetsFromJobs(facetBase, filters.sourceIds);
   const filtered = applyJobFilters(livePool, filters);
   const mixed = sortJobsByRecency(filtered);
   const totalMatching = mixed.length;

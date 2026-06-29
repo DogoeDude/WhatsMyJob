@@ -28,12 +28,22 @@ export const loadHomeInitialData = cache(async (): Promise<JobsHomeInitialData |
         ? result.offset + result.jobs.length < (meta?.totalMatching ?? result.totalMatching)
         : result.hasMore,
       browseOffset: result.offset,
-      sources: meta?.sources ?? [],
-      types: meta?.types ?? [],
-      locationSuggestions: meta?.locationSuggestions ?? [],
+      sources:
+        meta?.sources && meta.sources.length > 0
+          ? meta.sources
+          : (result.sources ?? []),
+      types:
+        meta?.types && meta.types.length > 0 ? meta.types : (result.types ?? []),
+      locationSuggestions:
+        meta?.locationSuggestions && meta.locationSuggestions.length > 0
+          ? meta.locationSuggestions
+          : (result.locationSuggestions ?? []),
       mode: result.mode,
       message: result.message,
-      metaLoaded: meta !== null,
+      metaLoaded:
+        meta !== null ||
+        (result.sources?.length ?? 0) > 0 ||
+        (result.types?.length ?? 0) > 0,
       catalogStale,
     };
   } catch (err) {

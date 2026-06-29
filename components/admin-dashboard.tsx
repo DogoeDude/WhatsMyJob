@@ -175,7 +175,7 @@ export function AdminDashboard() {
         </div>
 
         <SectionCard title="Job sources" className="mb-10">
-          <div className="mb-6 flex flex-col gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="mb-6 flex flex-col gap-4 rounded-lg border border-border bg-secondary p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="min-w-0">
               <p className="font-medium text-foreground">Sync all job boards</p>
               <p className="mt-1 text-sm text-muted-foreground">

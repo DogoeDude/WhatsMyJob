@@ -34,11 +34,11 @@ export function JobCategoryNav({
         disabled={disabled}
         onClick={() => onChange(item.id)}
         className={cn(
-          'flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all',
+          'flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-xs font-normal transition-colors',
           variant === 'sidebar'
             ? active
-              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-              : 'bg-muted/40 text-muted-foreground ring-1 ring-border/50 hover:bg-muted hover:text-foreground'
+              ? 'win-nav-pill-active text-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:bg-[var(--win-hover)] hover:text-foreground'
             : cn(filterChipClass, active && filterChipActiveClass)
         )}
         role="tab"

@@ -1,4 +1,5 @@
 import { cleanScrapedText, mapWithConcurrency } from '@/lib/jobs/scrape/extract';
+import { extractLinkedInDescriptionHtml } from '@/lib/jobs/fetch-job-description';
 import { scrapeText } from '@/lib/jobs/scrape/http';
 import { envEnabled, envInt, envStr } from '@/lib/jobs/sync-config';
 import type { JobProvider, NormalizedJobInput } from '@/lib/jobs/types';
@@ -51,10 +52,7 @@ async function fetchLinkedInDescription(jobId: string): Promise<string> {
     `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${jobId}`,
     { headers: { Accept: 'text/html' } }
   );
-  const markup = html.match(
-    /show-more-less-html__markup[^>]*>([\s\S]*?)<\/div>/i
-  )?.[1];
-  return cleanScrapedText(markup) || 'See the full listing on LinkedIn for details.';
+  return extractLinkedInDescriptionHtml(html) || 'See the full listing on LinkedIn for details.';
 }
 
 async function fetchLinkedInSearchPage(
