@@ -2,6 +2,7 @@ import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 import { revalidateTag } from 'next/cache';
 import { invalidateHasJobsCache } from '@/lib/jobs/query';
 import { clearLogoCache } from '@/lib/jobs/enrich-logos';
+import { ensureJobSearchIndex, resetJobSearchIndexCache } from '@/lib/jobs/search-index';
 import { getActiveProviders, getProvider, jobProviders } from '@/lib/jobs/providers';
 import { sanitizeJobInput } from '@/lib/jobs/sanitize-job-input';
 import type { NormalizedJobInput, SyncProviderResult } from '@/lib/jobs/types';
@@ -30,7 +31,17 @@ const SYNC_CONCURRENCY = 3;
 export function invalidateJobsCaches() {
   clearLogoCache();
   invalidateHasJobsCache();
+  resetJobSearchIndexCache();
   revalidateTag('jobs-meta', { expire: 0 });
+  revalidateTag('home-guest', { expire: 0 });
+}
+
+let searchIndexEnsured = false;
+
+export async function ensureJobsSearchIndexOnce() {
+  if (searchIndexEnsured) return;
+  searchIndexEnsured = true;
+  await ensureJobSearchIndex();
 }
 
 export async function ensureJobSources() {
@@ -166,6 +177,7 @@ export async function syncJobProvider(sourceId: string): Promise<SyncProviderRes
   });
 
   invalidateJobsCaches();
+  void ensureJobsSearchIndexOnce();
   return { added, updated, total };
 }
 
@@ -223,5 +235,6 @@ export async function syncAllJobProviders(): Promise<
   });
 
   invalidateJobsCaches();
+  void ensureJobsSearchIndexOnce();
   return results;
 }

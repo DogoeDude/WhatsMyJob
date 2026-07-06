@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AuthPromptDialog } from '@/components/auth-prompt-dialog';
 import { JobDetailPanelLazy } from '@/components/job-detail-panel-lazy';
 import { JobsFlatVirtualList } from '@/components/jobs-flat-virtual-list';
@@ -474,12 +474,12 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
     setMobileView('list');
   }, [searchQuery, debouncedFilters, category]);
 
-  const selectJob = (job: Job) => {
+  const selectJob = useCallback((job: Job) => {
     setSelectedJob(job);
     setMobileView('detail');
-  };
+  }, []);
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (isGuest) {
       setAuthPromptOpen(true);
       return;
@@ -492,13 +492,19 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
       browseOffsetRef.current + jobs.length,
       true
     );
-  };
+  }, [
+    isGuest,
+    hasMore,
+    isLoadingMore,
+    isLoading,
+    fetchJobs,
+    searchQuery,
+    debouncedFilters,
+    category,
+    jobs.length,
+  ]);
 
-  const showListFooter = isGuest
-    ? jobs.length > 0 && hasMore
-    : hasMore;
-
-  const handleFilterSuggestion = (suggestion: FilterSuggestion) => {
+  const handleFilterSuggestion = useCallback((suggestion: FilterSuggestion) => {
     if (suggestion.kind === 'search') {
       setSearchInput(suggestion.label);
       setSearchQuery(suggestion.label);
@@ -521,14 +527,28 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
           prev.type.toLowerCase() === suggestion.label.toLowerCase() ? '' : suggestion.label,
       }));
     }
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setSearchInput('');
     setSearchQuery('');
     setJobFilters(defaultFilters);
     setCategory(ALL_CATEGORY_ID);
-  };
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchInput('');
+    setSearchQuery('');
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    liveListLockRef.current = false;
+    void fetchJobs(searchQuery, debouncedFilters, category, 0, false, true);
+  }, [fetchJobs, searchQuery, debouncedFilters, category]);
+
+  const showListFooter = isGuest
+    ? jobs.length > 0 && hasMore
+    : hasMore;
 
   const hasBoardFilters =
     debouncedFilters.sourceIds.length > 0 ||
@@ -576,34 +596,48 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
     return String(n);
   };
 
-  const sidebarProps = {
-    searchInput,
-    onSearchInputChange: setSearchInput,
-    onSearchSubmit: applySearch,
-    onClearSearch: () => {
-      setSearchInput('');
-      setSearchQuery('');
-    },
-    searchPending,
-    appliedSearch: searchQuery,
-    jobFilters,
-    onFiltersChange: setJobFilters,
-    category,
-    onCategoryChange: setCategory,
-    sourceFacets,
-    jobTypes,
-    onFilterSuggestion: handleFilterSuggestion,
-    onClearAll: clearAllFilters,
-    onRefresh: () => {
-      liveListLockRef.current = false;
-      void fetchJobs(searchQuery, debouncedFilters, category, 0, false, true);
-    },
-    isLoading,
-    isRefreshing,
-    boardsLoading:
-      (isLoading || isListUpdating || isRefreshing) && sourceFacets.length === 0,
-    jobsCount: jobs.length,
-  };
+  const sidebarProps = useMemo(
+    () => ({
+      searchInput,
+      onSearchInputChange: setSearchInput,
+      onSearchSubmit: applySearch,
+      onClearSearch: clearSearch,
+      searchPending,
+      appliedSearch: searchQuery,
+      jobFilters,
+      onFiltersChange: setJobFilters,
+      category,
+      onCategoryChange: setCategory,
+      sourceFacets,
+      jobTypes,
+      onFilterSuggestion: handleFilterSuggestion,
+      onClearAll: clearAllFilters,
+      onRefresh: handleRefresh,
+      isLoading,
+      isRefreshing,
+      boardsLoading:
+        (isLoading || isListUpdating || isRefreshing) && sourceFacets.length === 0,
+      jobsCount: jobs.length,
+    }),
+    [
+      searchInput,
+      applySearch,
+      clearSearch,
+      searchPending,
+      searchQuery,
+      jobFilters,
+      category,
+      sourceFacets,
+      jobTypes,
+      handleFilterSuggestion,
+      clearAllFilters,
+      handleRefresh,
+      isLoading,
+      isRefreshing,
+      isListUpdating,
+      jobs.length,
+    ]
+  );
 
   const listHeader = (
     <JobsPaneHeader>

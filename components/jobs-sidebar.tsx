@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Loader2, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import { ActiveFilters } from '@/components/active-filters';
 import { JobCategoryNav } from '@/components/job-category-nav';
@@ -38,7 +39,7 @@ type JobsSidebarProps = {
   resizable?: boolean;
 };
 
-export function JobsSidebar({
+export const JobsSidebar = memo(function JobsSidebar({
   searchInput,
   onSearchInputChange,
   onSearchSubmit,
@@ -203,4 +204,4 @@ export function JobsSidebar({
       {content}
     </JobsPane>
   );
-}
+});

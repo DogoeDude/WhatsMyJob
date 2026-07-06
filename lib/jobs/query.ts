@@ -5,6 +5,15 @@ import { dedupeStrings } from '@/lib/jobs/utils';
 import { jobListingToJob } from '@/lib/jobs/serialize';
 import { listDescriptionSnippet, LIST_DESCRIPTION_SNIPPET_CHARS } from '@/lib/jobs/guest-description-preview';
 import { parseCompositeJobId } from '@/lib/jobs/description';
+import {
+  countJobListingsFts,
+  getDistinctJobTypesFts,
+  getSourceFacetsFromDbFts,
+  getTopLocationsFromDbFts,
+  searchJobListingsFts,
+  shouldUseFtsSearch,
+} from '@/lib/jobs/query-fts';
+import { ensureJobSearchIndex } from '@/lib/jobs/search-index';
 import type { Prisma } from '@prisma/client';
 import { Prisma as PrismaRuntime } from '@prisma/client';
 
@@ -57,11 +66,11 @@ function categoryWhere(categoryId: string): Prisma.JobListingWhereInput | null {
   };
 }
 
-function buildWhere(filters: JobListFilters): Prisma.JobListingWhereInput {
+function buildWhere(filters: JobListFilters, useFts = false): Prisma.JobListingWhereInput {
   const q = filters.search.trim();
   const and: Prisma.JobListingWhereInput[] = [];
 
-  if (q) {
+  if (q && !useFts) {
     and.push({
       OR: [
         { title: { contains: q, mode: 'insensitive' } },
@@ -72,8 +81,10 @@ function buildWhere(filters: JobListFilters): Prisma.JobListingWhereInput {
     });
   }
 
-  const catFilter = categoryWhere(filters.category);
-  if (catFilter) and.push(catFilter);
+  if (!useFts) {
+    const catFilter = categoryWhere(filters.category);
+    if (catFilter) and.push(catFilter);
+  }
 
   if (filters.sourceIds.length > 0) {
     and.push({ sourceId: { in: filters.sourceIds } });
@@ -90,8 +101,13 @@ function buildWhere(filters: JobListFilters): Prisma.JobListingWhereInput {
   return and.length > 0 ? { AND: and } : {};
 }
 
-function buildFacetWhere(filters: JobListFilters): Prisma.JobListingWhereInput {
-  return buildWhere({ ...filters, sourceIds: [] });
+function buildFacetWhere(filters: JobListFilters, useFts = false): Prisma.JobListingWhereInput {
+  return buildWhere({ ...filters, sourceIds: [] }, useFts);
+}
+
+async function resolveUseFts(filters: JobListFilters): Promise<boolean> {
+  void ensureJobSearchIndex().catch(() => {});
+  return shouldUseFtsSearch(filters);
 }
 
 let hasJobsCache: { at: number; value: boolean } | null = null;
@@ -134,8 +150,37 @@ export async function searchJobListings(
     return { jobs: [], skip: offset };
   }
 
+  const useFts = await resolveUseFts(filters);
+
+  if (useFts) {
+    const rows = await searchJobListingsFts(filters, limit, offset);
+    const snippets = await fetchDescriptionSnippets(rows.map((row) => row.id));
+    return {
+      jobs: rows.map((row) =>
+        rowToListJob(
+          {
+            id: row.id,
+            externalId: row.externalId,
+            title: row.title,
+            company: row.company,
+            location: row.location,
+            salary: row.salary,
+            type: row.type,
+            tags: row.tags,
+            applyUrl: row.applyUrl,
+            logoUrl: row.logoUrl,
+            postedAt: row.postedAt,
+            source: { id: row.sourceId, name: row.sourceName },
+          },
+          snippets.get(row.id) ?? ''
+        )
+      ),
+      skip: offset,
+    };
+  }
+
   const rows = await prisma.jobListing.findMany({
-    where: buildWhere(filters),
+    where: buildWhere(filters, false),
     select: listListingSelect,
     orderBy: [
       { postedAt: { sort: 'desc', nulls: 'last' } },
@@ -184,7 +229,12 @@ export async function getJobListingByIdOrComposite(id: string) {
 export async function getSourceFacetsFromDb(filters: JobListFilters) {
   if (!isDatabaseConfigured()) return [];
 
-  const where = buildFacetWhere(filters);
+  const useFts = await resolveUseFts(filters);
+  if (useFts) {
+    return getSourceFacetsFromDbFts(filters);
+  }
+
+  const where = buildFacetWhere(filters, false);
   const groups = await prisma.jobListing.groupBy({
     by: ['sourceId'],
     where,
@@ -198,13 +248,20 @@ export async function getSourceFacetsFromDb(filters: JobListFilters) {
 
 export async function countJobListings(filters: JobListFilters) {
   if (!isDatabaseConfigured()) return 0;
-  return prisma.jobListing.count({ where: buildWhere(filters) });
+  const useFts = await resolveUseFts(filters);
+  if (useFts) return countJobListingsFts(filters);
+  return prisma.jobListing.count({ where: buildWhere(filters, false) });
 }
 
 export async function getDistinctJobTypes(filters: JobListFilters) {
   if (!isDatabaseConfigured()) return [];
 
-  const where = buildFacetWhere(filters);
+  const useFts = await resolveUseFts(filters);
+  if (useFts) {
+    return getDistinctJobTypesFts(filters);
+  }
+
+  const where = buildFacetWhere(filters, false);
   const rows = await prisma.jobListing.findMany({
     where,
     select: { type: true },
@@ -220,7 +277,12 @@ export async function getDistinctJobTypes(filters: JobListFilters) {
 export async function getTopLocationsFromDb(filters: JobListFilters, limit = 8) {
   if (!isDatabaseConfigured()) return [];
 
-  const where = buildFacetWhere({ ...filters, location: '' });
+  const useFts = await resolveUseFts(filters);
+  if (useFts) {
+    return getTopLocationsFromDbFts(filters, limit);
+  }
+
+  const where = buildFacetWhere({ ...filters, location: '' }, false);
   const groups = await prisma.jobListing.groupBy({
     by: ['location'],
     where,

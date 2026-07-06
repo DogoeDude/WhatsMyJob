@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { JobCard } from '@/components/job-card';
 import type { Job } from '@/lib/jobs/types';
@@ -22,7 +22,10 @@ function SimpleJobList({
   jobs,
   selectedJobId,
   onJobSelect,
-}: Omit<JobsFlatVirtualListProps, 'freezeLayout'>) {
+  selectHandlers,
+}: Omit<JobsFlatVirtualListProps, 'freezeLayout'> & {
+  selectHandlers: Map<string, () => void>;
+}) {
   return (
     <ul className="space-y-0.5 p-1">
       {jobs.map((job) => (
@@ -31,7 +34,7 @@ function SimpleJobList({
             job={job}
             compact
             isSelected={job.id === selectedJobId}
-            onJobSelect={() => onJobSelect(job)}
+            onJobSelect={selectHandlers.get(job.id) ?? (() => onJobSelect(job))}
           />
         </li>
       ))}
@@ -68,6 +71,14 @@ export function JobsFlatVirtualList({
 
   const useVirtual = !freezeLayout && jobs.length >= VIRTUALIZE_MIN && scrollElement != null;
 
+  const selectHandlers = useMemo(() => {
+    const map = new Map<string, () => void>();
+    for (const job of jobs) {
+      map.set(job.id, () => onJobSelect(job));
+    }
+    return map;
+  }, [jobs, onJobSelect]);
+
   const virtualizer = useVirtualizer({
     count: useVirtual ? jobs.length : 0,
     getScrollElement: () => scrollElement,
@@ -101,6 +112,7 @@ export function JobsFlatVirtualList({
           jobs={jobs}
           selectedJobId={selectedJobId}
           onJobSelect={onJobSelect}
+          selectHandlers={selectHandlers}
         />
       </div>
     );
@@ -129,7 +141,7 @@ export function JobsFlatVirtualList({
                 job={job}
                 compact
                 isSelected={job.id === selectedJobId}
-                onJobSelect={() => onJobSelect(job)}
+                onJobSelect={selectHandlers.get(job.id) ?? (() => onJobSelect(job))}
               />
             </li>
           );

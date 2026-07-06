@@ -1,16 +1,15 @@
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { getCachedSession } from '@/lib/auth-session';
-import { getCatalogStaleCached } from '@/lib/jobs/catalog-freshness';
+import { getCatalogStaleCached, isCatalogStale } from '@/lib/jobs/catalog-freshness';
 import { browseJobLimit } from '@/lib/jobs/browse-limit';
 import { DEFAULT_JOB_LIST_FILTERS } from '@/lib/jobs/default-filters';
 import { getJobsFilterMeta, getJobsForApp } from '@/lib/jobs/service';
 import type { JobsHomeInitialData } from '@/lib/jobs/home-types';
 
-/** One home-page data load per request (shared if layout also reads session). */
-export const loadHomeInitialData = cache(async (): Promise<JobsHomeInitialData | undefined> => {
-  const session = await getCachedSession();
-  const limit = browseJobLimit(!!session);
-  const catalogStale = await getCatalogStaleCached();
+async function loadHomeDataInner(hasSession: boolean): Promise<JobsHomeInitialData | undefined> {
+  const limit = browseJobLimit(hasSession);
+  const catalogStale = hasSession ? await getCatalogStaleCached() : await isCatalogStale();
 
   try {
     const [result, meta] = await Promise.all([
@@ -53,4 +52,20 @@ export const loadHomeInitialData = cache(async (): Promise<JobsHomeInitialData |
     console.error('[Home] initial jobs load', err);
     return undefined;
   }
+}
+
+/** Cross-request cache for signed-out home SSR (invalidated on job sync). */
+const loadGuestHomeCached = unstable_cache(
+  () => loadHomeDataInner(false),
+  ['home-guest-initial-v1'],
+  { revalidate: 45, tags: ['jobs-meta', 'home-guest'] }
+);
+
+/** One home-page data load per request (shared if layout also reads session). */
+export const loadHomeInitialData = cache(async (): Promise<JobsHomeInitialData | undefined> => {
+  const session = await getCachedSession();
+  if (!session) {
+    return loadGuestHomeCached();
+  }
+  return loadHomeDataInner(true);
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { ChevronRight, MapPin, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompanyLogo } from '@/components/company-logo';
@@ -13,7 +14,30 @@ interface JobCardProps {
   compact?: boolean;
 }
 
-export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps) {
+function jobCardPropsEqual(prev: JobCardProps, next: JobCardProps): boolean {
+  if (prev.isSelected !== next.isSelected || prev.compact !== next.compact) return false;
+  const a = prev.job;
+  const b = next.job;
+  return (
+    a.id === b.id &&
+    a.title === b.title &&
+    a.company === b.company &&
+    a.location === b.location &&
+    a.type === b.type &&
+    a.salary === b.salary &&
+    a.postedDate === b.postedDate &&
+    a.postedAtMs === b.postedAtMs &&
+    a.logoUrl === b.logoUrl &&
+    (a.tags?.length ?? 0) === (b.tags?.length ?? 0)
+  );
+}
+
+export const JobCard = memo(function JobCard({
+  job,
+  onJobSelect,
+  isSelected,
+  compact,
+}: JobCardProps) {
   return (
     <article
       role="button"
@@ -85,4 +109,4 @@ export function JobCard({ job, onJobSelect, isSelected, compact }: JobCardProps)
 
     </article>
   );
-}
+}, jobCardPropsEqual);
