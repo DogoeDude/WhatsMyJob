@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 
 const DEFAULT_STALE_HOURS = 6;
@@ -31,3 +32,6 @@ export async function isCatalogStale(now = Date.now()): Promise<boolean> {
   if (!lastSync) return true;
   return now - lastSync.getTime() > catalogStaleThresholdMs();
 }
+
+/** One stale check per request (home + getJobsForApp share this). */
+export const getCatalogStaleCached = cache(isCatalogStale);

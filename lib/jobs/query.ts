@@ -3,11 +3,12 @@ import type { JobListFilters } from '@/lib/jobs/filters';
 import { ALL_CATEGORY_ID, getCategoryById } from '@/lib/jobs/categories';
 import { dedupeStrings } from '@/lib/jobs/utils';
 import { jobListingToJob } from '@/lib/jobs/serialize';
-import { listDescriptionSnippet } from '@/lib/jobs/guest-description-preview';
+import { listDescriptionSnippet, LIST_DESCRIPTION_SNIPPET_CHARS } from '@/lib/jobs/guest-description-preview';
 import { parseCompositeJobId } from '@/lib/jobs/description';
 import type { Prisma } from '@prisma/client';
+import { Prisma as PrismaRuntime } from '@prisma/client';
 
-/** List view — includes logoUrl; skips heavy description text. */
+/** List view — omits full description text (fetched as a short snippet separately). */
 const listListingSelect = {
   id: true,
   externalId: true,
@@ -17,12 +18,29 @@ const listListingSelect = {
   salary: true,
   type: true,
   tags: true,
-  description: true,
   applyUrl: true,
   logoUrl: true,
   postedAt: true,
   source: { select: { id: true, name: true } },
 } satisfies Prisma.JobListingSelect;
+
+const SNIPPET_SQL_CHARS = LIST_DESCRIPTION_SNIPPET_CHARS + 48;
+
+async function fetchDescriptionSnippets(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+
+  const rows = await prisma.$queryRaw<Array<{ id: string; snippet: string | null }>>`
+    SELECT id, LEFT(description, ${SNIPPET_SQL_CHARS}) AS snippet
+    FROM job_listing
+    WHERE id IN (${PrismaRuntime.join(ids)})
+  `;
+
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    map.set(row.id, listDescriptionSnippet(row.snippet ?? ''));
+  }
+  return map;
+}
 
 function categoryWhere(categoryId: string): Prisma.JobListingWhereInput | null {
   if (!categoryId || categoryId === ALL_CATEGORY_ID || categoryId === 'other') {
@@ -96,11 +114,12 @@ export function invalidateHasJobsCache() {
 }
 
 function rowToListJob(
-  row: Prisma.JobListingGetPayload<{ select: typeof listListingSelect }>
+  row: Prisma.JobListingGetPayload<{ select: typeof listListingSelect }>,
+  description: string
 ) {
   return jobListingToJob({
     ...row,
-    description: listDescriptionSnippet(row.description ?? ''),
+    description,
     requirements: [],
     benefits: [],
   });
@@ -127,7 +146,12 @@ export async function searchJobListings(
     take: limit,
   });
 
-  return { jobs: rows.map((row) => rowToListJob(row)), skip: offset };
+  const snippets = await fetchDescriptionSnippets(rows.map((row) => row.id));
+
+  return {
+    jobs: rows.map((row) => rowToListJob(row, snippets.get(row.id) ?? '')),
+    skip: offset,
+  };
 }
 
 export async function getJobListingById(id: string) {

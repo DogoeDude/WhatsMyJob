@@ -8,17 +8,19 @@ import {
 import { getJobsFilterMetaCached } from '@/lib/jobs/filter-meta-cache';
 import { buildActiveSourceFacetsFromJobs } from '@/lib/jobs/source-facets';
 import { enrichJobsWithLogos, clearLogoCache } from '@/lib/jobs/enrich-logos';
-import { isCatalogStale } from '@/lib/jobs/catalog-freshness';
+import { getCatalogStaleCached } from '@/lib/jobs/catalog-freshness';
 import { isDefaultBrowseFilters } from '@/lib/jobs/default-filters';
 import { fetchLiveJobs } from '@/lib/jobs/live-fetch';
 import { scheduleCatalogSyncIfStale } from '@/lib/jobs/stale-sync';
 import { getTopLocationsFromJobs } from '@/lib/jobs/filter-suggestions';
 import { dedupeStrings, sortJobsByRecency } from '@/lib/jobs/utils';
+import { listDescriptionSnippet } from '@/lib/jobs/guest-description-preview';
 import {
   getJobStats,
   hasAnyJobListings,
   searchJobListings,
 } from '@/lib/jobs/query';
+import type { Job } from '@/lib/jobs/types';
 
 export async function getAppJobStats() {
   try {
@@ -51,7 +53,18 @@ export type GetJobsOptions = {
   forceLive?: boolean;
   /** When false, skip facets/count queries (faster list paint). */
   includeMeta?: boolean;
+  /** Skip re-checking catalog freshness when the caller already knows. */
+  catalogStale?: boolean;
 };
+
+function stripJobsForList(jobs: Job[]): Job[] {
+  return jobs.map((job) => ({
+    ...job,
+    description: listDescriptionSnippet(job.description),
+    requirements: [],
+    benefits: [],
+  }));
+}
 
 export const getJobsFilterMeta = cache(async function getJobsFilterMeta(filters: JobListFilters) {
   return getJobsFilterMetaCached(filters);
@@ -66,8 +79,10 @@ export async function getJobsForApp(
   const explicitRefresh = options?.refresh ?? options?.forceLive ?? false;
   const includeMeta = options?.includeMeta ?? true;
   const defaultBrowse = isDefaultBrowseFilters(filters);
-  const catalogStale = defaultBrowse ? await isCatalogStale() : false;
-  const refresh = explicitRefresh || (catalogStale && defaultBrowse);
+  const catalogStale =
+    options?.catalogStale ??
+    (defaultBrowse ? await getCatalogStaleCached() : false);
+  const refresh = explicitRefresh;
 
   if (catalogStale && defaultBrowse) {
     scheduleCatalogSyncIfStale();
@@ -77,7 +92,7 @@ export async function getJobsForApp(
     try {
       if (await hasAnyJobListings()) {
         const { jobs, skip } = await searchJobListings(filters, limit, offset);
-        const enrichedJobs = await enrichJobsWithLogos(jobs);
+        const enrichedJobs = stripJobsForList(await enrichJobsWithLogos(jobs));
 
         let sources: SourceFacet[] = buildActiveSourceFacetsFromJobs(
           enrichedJobs,
@@ -110,6 +125,10 @@ export async function getJobsForApp(
           locationSuggestions,
           filters,
           mode: 'database' as const,
+          message:
+            catalogStale && defaultBrowse
+              ? 'Showing saved jobs. Your catalog is updating in the background.'
+              : undefined,
         };
       }
     } catch (err) {
@@ -136,13 +155,13 @@ export async function getJobsForApp(
   const totalMatching = mixed.length;
   const sliceStart = offset;
   const page = mixed.slice(sliceStart, sliceStart + limit);
-  let jobs = await enrichJobsWithLogos(page, { allowLiveCache: refresh });
+  let jobs = stripJobsForList(await enrichJobsWithLogos(page, { allowLiveCache: refresh }));
 
   if (refresh && jobs.length === 0) {
     try {
       if (await hasAnyJobListings()) {
         const { jobs: dbJobs, skip } = await searchJobListings(filters, limit, offset);
-        jobs = await enrichJobsWithLogos(dbJobs);
+        jobs = stripJobsForList(await enrichJobsWithLogos(dbJobs));
         let dbSources: SourceFacet[] = sources;
         let dbTypes: string[] = [];
         let dbLocations: string[] = [];
@@ -193,9 +212,7 @@ export async function getJobsForApp(
   if (jobs.length === 0) {
     message = 'No jobs match your filters. Try another source or clear filters.';
   } else if (refresh) {
-    message = catalogStale && !explicitRefresh
-      ? 'Your saved catalog was out of date — showing the latest jobs from job boards (newest first). A background sync is updating the database.'
-      : 'Fetched latest jobs from job board APIs (newest first).';
+    message = 'Fetched latest jobs from job board APIs (newest first).';
   } else {
     try {
       if (!(await hasAnyJobListings())) {

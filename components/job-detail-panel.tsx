@@ -7,7 +7,11 @@ import { GuestJobDescriptionGate } from '@/components/guest-job-description-gate
 import { Button } from '@/components/ui/button';
 import { useAppSession } from '@/lib/use-app-session';
 import { isPersistedJobId } from '@/lib/jobs/constants';
-import { isShortJobDescription } from '@/lib/jobs/description';
+import { isShortJobDescription } from '@/lib/jobs/description-limits';
+import {
+  getCachedJobDescription,
+  setCachedJobDescription,
+} from '@/lib/jobs/job-description-cache';
 import { JobDescriptionContent, JobDetailList } from '@/components/job-description-content';
 import { JobDetailHeader } from '@/components/job-detail-header';
 import { JobsPaneHeader } from '@/components/jobs-board-layout';
@@ -54,6 +58,13 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
   useEffect(() => {
     if (!job || !sessionKnown) return;
 
+    const cached = getCachedJobDescription(job.id);
+    if (cached) {
+      setDetails((prev) => (prev ? { ...prev, description: cached } : { ...job, description: cached }));
+      setLoadingDetails(false);
+      return;
+    }
+
     if (isGuest) {
       const hasSnippet = job.description.trim().length > 0;
       if (hasSnippet) setLoadingDetails(false);
@@ -66,6 +77,7 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
           const res = await fetch(`/api/jobs/${job.id}`);
           const data = (await res.json()) as { job?: Job };
           if (!cancelled && res.ok && data.job?.description?.trim()) {
+            setCachedJobDescription(job.id, data.job.description);
             setDetails((prev) =>
               prev
                 ? { ...prev, description: data.job!.description }
@@ -93,6 +105,7 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
         const res = await fetch(`/api/jobs/${job.id}`);
         const data = (await res.json()) as { job?: Job };
         if (!cancelled && res.ok && data.job?.description?.trim()) {
+          setCachedJobDescription(job.id, data.job.description);
           setDetails((prev) =>
             prev
               ? {
@@ -113,7 +126,7 @@ export function JobDetailPanel({ job, className, onBack }: JobDetailPanelProps) 
     return () => {
       cancelled = true;
     };
-  }, [job?.id, job?.description, isGuest, sessionKnown]);
+  }, [job, isGuest, sessionKnown]);
 
   if (!job || !details) {
     return (

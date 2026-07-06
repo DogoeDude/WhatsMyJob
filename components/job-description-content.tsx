@@ -156,8 +156,14 @@ export function JobDescriptionContent({ description, className }: JobDescription
 
   const activeDescription =
     showTranslation && translatedText ? translatedText : description;
-  const blocks = parseJobDescription(activeDescription);
-  const sections = groupDescriptionIntoSections(blocks);
+  const blocks = useMemo(
+    () => parseJobDescription(activeDescription),
+    [activeDescription]
+  );
+  const sections = useMemo(
+    () => groupDescriptionIntoSections(blocks),
+    [blocks]
+  );
   const plainText = activeDescription.trim();
 
   const handleTranslate = async () => {

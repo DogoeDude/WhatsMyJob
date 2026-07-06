@@ -144,11 +144,7 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(initialData?.message ?? null);
   /** Skip client refetch when SSR already returned a usable list. */
-  const skipInitialBrowseRef = useRef(
-    !!initialData &&
-      (initialData.jobs?.length ?? 0) > 0 &&
-      (!initialData.catalogStale || initialData.mode === 'live')
-  );
+  const skipInitialBrowseRef = useRef(!!initialData && (initialData.jobs?.length ?? 0) > 0);
   const skipInitialMetaRef = useRef(initialData?.metaLoaded ?? false);
   const hydratedBrowseKeyRef = useRef<string | null>(
     initialData && (initialData.jobs?.length ?? 0) > 0
@@ -424,14 +420,6 @@ export function JobsHome({ initialData }: { initialData?: JobsHomeInitialData })
     prevBrowseKeyRef.current = key;
     liveListLockRef.current = false;
   }, [searchQuery, debouncedFilters, category]);
-
-  useEffect(() => {
-    if (!initialData?.catalogStale || sessionPending) return;
-    if (initialData.mode === 'live') return;
-    liveListLockRef.current = false;
-    void fetchJobsRef.current(searchQuery, debouncedFilters, category, 0, false, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot stale-catalog recovery
-  }, [sessionPending]);
 
   useEffect(() => {
     if (sessionPending) return;

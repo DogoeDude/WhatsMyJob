@@ -1,14 +1,9 @@
-import { jobProviders } from '@/lib/jobs/providers';
+import { JOB_SOURCES_CATALOG } from '@/lib/jobs/sources-catalog';
+import { isShortJobDescription, SHORT_DESCRIPTION_MAX } from '@/lib/jobs/description-limits';
 
-/** Descriptions shorter than this are treated as teasers/snippets. */
-export const SHORT_DESCRIPTION_MAX = 280;
+export { isShortJobDescription, SHORT_DESCRIPTION_MAX };
 
-const SOURCE_IDS = jobProviders.map((p) => p.id).sort((a, b) => b.length - a.length);
-
-export function isShortJobDescription(description: string | null | undefined): boolean {
-  const text = description?.trim() ?? '';
-  return text.length < SHORT_DESCRIPTION_MAX;
-}
+const SOURCE_IDS = JOB_SOURCES_CATALOG.map((s) => s.id).sort((a, b) => b.length - a.length);
 
 export function parseCompositeJobId(id: string): { sourceId: string; externalId: string } | null {
   for (const sourceId of SOURCE_IDS) {
